@@ -3,24 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>حسابات عمران الخليج – Firebase</title>
+  <title>حسابات مسجد المدينة</title>
 
   <style>
     body { font-family: Arial, Tahoma, sans-serif; background:#f6f7fb; margin:0; color:#222; }
-    header { background:#0d2b55; color:#fff; padding:14px 18px; }
+    header { background:#3b6fb3; color:#fff; padding:14px 18px; }
     header h1 { margin:0; font-size:20px; }
     .container { max-width:1150px; margin:20px auto; background:#fff; padding:18px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.06); }
     .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; }
-    .card { background:#0d2b55; color:#fff; padding:14px; border-radius:12px; text-align:center; }
-    .card small { opacity:.8; display:block; margin-bottom:6px }
+    .card { background:#3b6fb3; color:#fff; padding:14px; border-radius:12px; text-align:center; position:relative; }
+    .card small { opacity:.9; display:block; margin-bottom:6px }
     .card b { font-size:18px }
+    .edit-btn { position:absolute; top:6px; left:8px; background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:50%; width:22px; height:22px; cursor:pointer; font-size:14px; }
+    .edit-btn:hover { background:rgba(255,255,255,0.4); }
     .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
     input, select, button { padding:10px 12px; border:1px solid #ddd; border-radius:10px; font-size:14px; }
-    button { background:#1e5bd7; color:#fff; border:none; cursor:pointer }
+    button { background:#3b6fb3; color:#fff; border:none; cursor:pointer }
     button:hover { filter:brightness(.98) }
     table { width:100%; border-collapse:collapse; margin-top:12px; }
     th, td { border-bottom:1px solid #eee; padding:10px; text-align:center; }
-    thead th { background:#0d2b55; color:#fff; position:sticky; top:0; }
+    thead th { background:#3b6fb3; color:#fff; position:sticky; top:0; }
     .danger { background:#d7263d }
     .success { background:#0a8f5a }
     .muted { color:#666; }
@@ -54,7 +56,7 @@
     let entries = [];
 
     // التوقعات الافتراضية (يمكن تعديلها)
-    const expectedTotals = {
+    let expectedTotals = {
       "مصاريف الداير": 3000,
       "مصاريف A1": 5000,
       "مصاريف A2": 5000,
@@ -73,6 +75,15 @@
       return t;
     }
     function translateLocation(l){ return l==="cash" ? "الصندوق" : l==="bank" ? "البنك" : l; }
+
+    // زر تعديل المبلغ المتوقع
+    window.editExpected = (cat)=>{
+      const newVal = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat] || 0);
+      if(newVal !== null && !isNaN(parseFloat(newVal))){
+        expectedTotals[cat] = parseFloat(newVal);
+        updateTotals();
+      }
+    };
 
     function updateTotals(){
       let totalExpenses=0,totalIncome=0,cash=0,bank=0;
@@ -107,8 +118,9 @@
         card.className = "card";
         const color = percent>=100 ? "#d7263d" : "#0a8f5a";
         card.innerHTML = `
+          <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
           <small>${cat}</small>
-          <b>${total.toFixed(2)} / ${expected} ر.س</b>
+          <b>${total.toFixed(2)} / ${expected.toFixed(2)} ر.س</b>
           <div class="progress-container">
             <div class="progress-bar" style="width:${percent}%;background:${color}"></div>
           </div>
