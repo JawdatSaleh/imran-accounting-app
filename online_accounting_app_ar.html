@@ -2,63 +2,129 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>حسابات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حسابات عمران الخليج – نسخة محسّنة</title>
   <style>
-    body { font-family: "Cairo", sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #222; }
-    h1 { text-align: center; color: #333; }
-    .login-box, #app { max-width: 700px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: white; }
-    input, select, button { padding: 8px; margin: 5px; }
-    .totals { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .stat { background: #eee; border-radius: 8px; padding: 10px; flex: 1; min-width: 120px; text-align: center; }
-    .value { font-weight: bold; font-size: 1.2em; color: #0077cc; }
+    /* Basic resets */
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background-color: #f5f5f5; }
+    h1 { margin: 0; padding: 1rem; text-align: center; background: #263e8c; color: white; }
+    /* Container for login and main app */
+    .container { padding: 1rem; max-width: 1200px; margin: auto; }
+    /* Login screen */
+    #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; }
+    #loginScreen form { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    #loginScreen label { display: block; margin: 0.5rem 0 0.25rem; }
+    #loginScreen input, #loginScreen select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
+    #loginScreen button { padding: 0.5rem 1rem; font-size: 1rem; background: #263e8c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #loginScreen button:hover { background: #1d2e6e; }
+    /* Stats row */
+    .stats-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    .stat { flex: 1 1 150px; background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; }
+    .stat strong { display: block; font-size: 0.9rem; margin-bottom: 0.5rem; color: #666; }
+    .stat .value { font-size: 1.2rem; font-weight: bold; }
+    /* Entries table */
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    thead { background: #263e8c; color: white; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid #ddd; text-align: center; font-size: 0.9rem; }
+    tbody tr:nth-child(even) { background: #f9f9f9; }
+    tbody tr:hover { background: #eef; }
+    /* Form controls */
+    .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    .form-row > div { flex: 1 1 200px; }
+    .form-row label { display: block; margin-bottom: 0.25rem; font-size: 0.85rem; }
+    .form-row input, .form-row select { width: 100%; padding: 0.4rem; }
+    .actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
+    .actions button { flex: 1; padding: 0.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    .actions button.expense { background: #e53935; color: white; }
+    .actions button.income { background: #43a047; color: white; }
+    .actions button.transfer { background: #fb8c00; color: white; }
+    .actions button:hover { opacity: 0.9; }
+    /* Hide main app initially */
+    #app { display: none; }
   </style>
 </head>
 <body>
+  <h1>حسابات عمران الخليج – نسخة محسّنة</h1>
 
-  <h1>📊 تطبيق المحاسبة</h1>
-
-  <!-- شاشة تسجيل الدخول -->
-  <div id="loginScreen" class="login-box">
-    <h3>تسجيل الدخول</h3>
-    <label>اسم المستخدم:</label>
-    <select id="usernameSelect">
-      <option value="A1">A1</option>
-      <option value="A2">A2</option>
-    </select><br>
-    <label>كلمة المرور:</label>
-    <input type="password" id="passwordInput"><br>
-    <button onclick="login()">تسجيل الدخول</button>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="container">
+    <form onsubmit="event.preventDefault(); login();">
+      <label for="usernameSelect">اختر الحساب:</label>
+      <select id="usernameSelect">
+        <option value="A1">A1</option>
+        <option value="A2">A2</option>
+      </select>
+      <label for="passwordInput">كلمة المرور:</label>
+      <input type="password" id="passwordInput" required>
+      <button type="submit">تسجيل الدخول</button>
+    </form>
   </div>
 
-  <!-- التطبيق -->
-  <div id="app" style="display:none;">
-    <h3>إضافة عملية</h3>
-    <label>التاريخ:</label>
-    <input type="date" id="entryDate"><br>
-    <label>النوع:</label>
-    <select id="entryType">
-      <option value="expense">مصروف</option>
-      <option value="income">إيراد</option>
-      <option value="transfer">تحويل</option>
-    </select><br>
-    <label>المبلغ:</label>
-    <input type="number" id="entryAmount" step="0.01"><br>
-    <label>الفئة:</label>
-    <select id="entryCategory"></select><br>
-    <label>الموقع:</label>
-    <select id="entryLocation">
-      <option value="cash">الصندوق</option>
-      <option value="bank">البنك</option>
-    </select><br>
-    <label>ملاحظات:</label>
-    <input type="text" id="entryNotes"><br>
-    <button onclick="submitEntry()">➕ إضافة</button>
-
-    <h3>📄 السجلات</h3>
-    <table>
+  <!-- Main App -->
+  <div id="app" class="container">
+    <!-- Summary stats -->
+    <div id="summaryStats" class="stats-row">
+      <div class="stat">
+        <strong>إجمالي المصروفات</strong>
+        <div class="value" id="totalExpenses">0.00 ر.س</div>
+      </div>
+      <div class="stat">
+        <strong>إجمالي الإيرادات</strong>
+        <div class="value" id="totalIncome">0.00 ر.س</div>
+      </div>
+      <div class="stat">
+        <strong>رصيد الصندوق</strong>
+        <div class="value" id="cashBalance">0.00 ر.س</div>
+      </div>
+      <div class="stat">
+        <strong>رصيد البنك</strong>
+        <div class="value" id="bankBalance">0.00 ر.س</div>
+      </div>
+    </div>
+    <!-- Category totals -->
+    <div id="categoryTotals" class="stats-row"></div>
+    <!-- Entry form -->
+    <div id="entryForm" class="form-row">
+      <div>
+        <label for="entryDate">التاريخ</label>
+        <input type="date" id="entryDate" value="" required>
+      </div>
+      <div>
+        <label for="entryType">النوع</label>
+        <select id="entryType">
+          <option value="expense">مصروف</option>
+          <option value="income">إيراد</option>
+          <option value="transfer">تحويل</option>
+        </select>
+      </div>
+      <div>
+        <label for="entryAmount">المبلغ (ر.س)</label>
+        <input type="number" id="entryAmount" min="0" step="0.01" required>
+      </div>
+      <div>
+        <label for="entryCategory">الفئة</label>
+        <select id="entryCategory"></select>
+      </div>
+      <div>
+        <label for="entryLocation">الموقع</label>
+        <select id="entryLocation">
+          <option value="cash">الصندوق</option>
+          <option value="bank">البنك</option>
+        </select>
+      </div>
+      <div>
+        <label for="entryNotes">ملاحظات</label>
+        <input type="text" id="entryNotes">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="expense" onclick="submitEntry('expense')">إضافة مصروف</button>
+      <button class="income" onclick="submitEntry('income')">إضافة إيراد</button>
+      <button class="transfer" onclick="submitEntry('transfer')">تحويل بين الصندوق والبنك</button>
+    </div>
+    <!-- Entries table -->
+    <table id="entriesTable">
       <thead>
         <tr>
           <th>المعرف</th>
@@ -69,182 +135,242 @@
           <th>الموقع</th>
           <th>المستخدم</th>
           <th>ملاحظات</th>
-          <th>حذف</th>
+          <th>إجراء</th>
         </tr>
       </thead>
       <tbody id="entriesBody"></tbody>
     </table>
-
-    <div class="totals">
-      <div class="stat"><strong>إجمالي المصروفات</strong><div class="value" id="totalExpenses">0</div></div>
-      <div class="stat"><strong>إجمالي الإيرادات</strong><div class="value" id="totalIncome">0</div></div>
-      <div class="stat"><strong>رصيد الصندوق</strong><div class="value" id="cashBalance">0</div></div>
-      <div class="stat"><strong>رصيد البنك</strong><div class="value" id="bankBalance">0</div></div>
-    </div>
-
-    <h3>📊 إجمالي الفئات</h3>
-    <div id="categoryTotals" class="totals"></div>
   </div>
 
-<script>
-const users = { A1: '1234', A2: '5678' };
-const categories = ['عهد مسجد المدينة','مصاريف A1','مصاريف A2','مصاريف المؤسسة','ديون'];
-let currentUser = null;
-let entries = [];
+  <script>
+    // Users and categories configuration
+    const users = {
+      A1: '1234', // كلمة المرور لحساب A1
+      A2: '5678'  // كلمة المرور لحساب A2
+    };
+    const categories = [
+      'عهد مسجد المدينة',
+      'مصاريف A1',
+      'مصاريف A2',
+      'مصاريف المؤسسة',
+      'ديون'
+    ];
 
-// ✅ إعداد رابط Google Apps Script
-const remoteConfig = {
-  type: 'gSheet',
-  gSheet: {
-    url: 'https://script.google.com/macros/s/AKfycbz3UCd43zN9INdUYh4wQ8xxAMGy4ltaX2I2a24tdGeMOk5i2k6kmoIQXUmPaLnVlScK/exec'
-  }
-};
+    // Application state
+    let currentUser = null;
+    let entries = [];
 
-// ✅ تحميل البيانات من Google Sheets
-async function loadEntries() {
-  try {
-    const resp = await fetch(remoteConfig.gSheet.url, { method: 'GET', mode: 'cors' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    entries = data.map(item => ({
-      id: item.id, date: item.date, type: item.type, amount: Number(item.amount),
-      category: item.category, location: item.location, notes: item.notes || '', user: item.user || ''
-    }));
-    updateUI();
-  } catch (err) {
-    console.error('❌ خطأ أثناء تحميل البيانات:', err);
-    alert('⚠️ حدث خطأ أثناء تحميل البيانات من Google Sheets');
-  }
-}
+    // Remote configuration for Google Sheets integration.  Provide the
+    // `exec` URL of your deployed Apps Script web app here.  When you
+    // update and redeploy the Apps Script, be sure to update this URL.
+    const remoteConfig = {
+      type: 'gSheet',
+      gSheet: {
+        url: 'https://script.google.com/macros/s/AKfycbw276IzWnaYq752V1npFMGLnxgYuUTQOlYA_0KSjZO4cEM4D5XZgBj7MCRUdOo4iRTB/exec'
+      }
+    };
 
-// ✅ حفظ البيانات إلى Google Sheets
-async function saveEntries() {
-  try {
-    const response = await fetch(remoteConfig.gSheet.url, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entries })
-    });
-    if (!response.ok) throw new Error(`فشل الحفظ: ${response.status}`);
-    alert('✅ تم حفظ البيانات بنجاح في Google Sheets');
-  } catch (err) {
-    console.error('❌ خطأ أثناء حفظ البيانات:', err);
-    alert('⚠️ حدث خطأ أثناء حفظ البيانات إلى Google Sheets');
-  }
-}
-
-// تسجيل الدخول
-function login() {
-  const user = document.getElementById('usernameSelect').value;
-  const pass = document.getElementById('passwordInput').value;
-  if (users[user] && users[user] === pass) {
-    currentUser = user;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('entryDate').valueAsDate = new Date();
-    loadEntries();
-  } else {
-    alert('❌ اسم المستخدم أو كلمة المرور غير صحيحة');
-  }
-}
-
-// تعبئة الفئات
-const categorySelect = document.getElementById('entryCategory');
-categories.forEach(cat => {
-  const opt = document.createElement('option');
-  opt.value = cat;
-  opt.textContent = cat;
-  categorySelect.appendChild(opt);
-});
-
-// إضافة سجل جديد
-function submitEntry() {
-  if (!currentUser) return alert('الرجاء تسجيل الدخول أولاً');
-  const date = document.getElementById('entryDate').value;
-  const type = document.getElementById('entryType').value;
-  const amount = parseFloat(document.getElementById('entryAmount').value);
-  const category = document.getElementById('entryCategory').value;
-  const location = document.getElementById('entryLocation').value;
-  const notes = document.getElementById('entryNotes').value;
-
-  if (!date || isNaN(amount) || !category || !location) return alert('الرجاء إدخال جميع البيانات المطلوبة');
-
-  const entry = { id: Date.now(), date, type, amount, category, location, notes, user: currentUser };
-  entries.push(entry);
-  clearEntryForm(); updateUI(); saveEntries();
-}
-
-function clearEntryForm() {
-  document.getElementById('entryAmount').value = '';
-  document.getElementById('entryNotes').value = '';
-}
-
-// حذف سجل
-function deleteEntry(id) {
-  entries = entries.filter(e => e.id !== id);
-  updateUI(); saveEntries();
-}
-
-// تحديث الواجهة
-function updateUI() { renderEntries(); updateTotals(); }
-
-function renderEntries() {
-  const tbody = document.getElementById('entriesBody');
-  tbody.innerHTML = '';
-  entries.forEach(entry => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${entry.id}</td>
-      <td>${entry.date}</td>
-      <td>${translateType(entry.type)}</td>
-      <td>${entry.amount.toFixed(2)} ر.س</td>
-      <td>${entry.category}</td>
-      <td>${translateLocation(entry.location)}</td>
-      <td>${entry.user}</td>
-      <td>${entry.notes}</td>
-      <td><button onclick="deleteEntry(${entry.id})">🗑️</button></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function translateType(t) {
-  switch (t) {
-    case 'expense': return 'مصروف';
-    case 'income': return 'إيراد';
-    case 'transfer': return 'تحويل';
-    default: return t;
-  }
-}
-function translateLocation(l) { return l === 'cash' ? 'الصندوق' : 'البنك'; }
-
-function updateTotals() {
-  let totalExpenses = 0, totalIncome = 0, cash = 0, bank = 0;
-  const catTotals = {}; categories.forEach(c => catTotals[c] = 0);
-  entries.forEach(e => {
-    if (e.type === 'expense') {
-      totalExpenses += e.amount; e.location === 'cash' ? cash -= e.amount : bank -= e.amount;
-      if (catTotals[e.category] !== undefined) catTotals[e.category] += e.amount;
-    } else if (e.type === 'income') {
-      totalIncome += e.amount; e.location === 'cash' ? cash += e.amount : bank += e.amount;
-    } else if (e.type === 'transfer') {
-      if (e.location === 'cash') { cash -= e.amount; bank += e.amount; } else { bank -= e.amount; cash += e.amount; }
+    /**
+     * Load entries from the remote Google Sheets via the Apps Script web app.
+     * This will replace the local `entries` array with data from the sheet.
+     */
+    async function loadEntries() {
+      if (remoteConfig.type === 'gSheet') {
+        try {
+          const resp = await fetch(remoteConfig.gSheet.url);
+          const data = await resp.json();
+          entries = data.map(item => ({
+            id: item.id,
+            date: item.date,
+            type: item.type,
+            amount: Number(item.amount),
+            category: item.category,
+            location: item.location,
+            notes: item.notes || '',
+            user: item.user || ''
+          }));
+          updateUI();
+        } catch (err) {
+          console.error('Error loading entries:', err);
+          alert('حدث خطأ أثناء تحميل البيانات من جوجل شيت');
+        }
+      }
     }
-  });
-  document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2);
-  document.getElementById('totalIncome').textContent = totalIncome.toFixed(2);
-  document.getElementById('cashBalance').textContent = cash.toFixed(2);
-  document.getElementById('bankBalance').textContent = bank.toFixed(2);
-  const catContainer = document.getElementById('categoryTotals');
-  catContainer.innerHTML = '';
-  categories.forEach(cat => {
-    const div = document.createElement('div');
-    div.className = 'stat';
-    div.innerHTML = `<strong>${cat}</strong><div class="value">${catTotals[cat].toFixed(2)}</div>`;
-    catContainer.appendChild(div);
-  });
-}
-</script>
 
+    /**
+     * Save the current entries array back to Google Sheets via the Apps
+     * Script web app.  This will overwrite the existing data in the sheet.
+     */
+    async function saveEntries() {
+      if (remoteConfig.type === 'gSheet') {
+        try {
+          await fetch(remoteConfig.gSheet.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entries: entries })
+          });
+        } catch (err) {
+          console.error('Error saving entries:', err);
+          alert('حدث خطأ أثناء حفظ البيانات إلى جوجل شيت');
+        }
+      }
+    }
+
+    // Populate category options
+    const categorySelect = document.getElementById('entryCategory');
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      categorySelect.appendChild(opt);
+    });
+
+    // Login function
+    function login() {
+      const user = document.getElementById('usernameSelect').value;
+      const pass = document.getElementById('passwordInput').value;
+      if (users[user] && users[user] === pass) {
+        currentUser = user;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('entryDate').valueAsDate = new Date();
+        // After successful login, load existing entries from Google Sheets
+        loadEntries();
+      } else {
+        alert('كلمة المرور غير صحيحة أو اسم المستخدم غير صحيح');
+      }
+    }
+
+    // Add a new entry
+    function submitEntry(forcedType) {
+      if (!currentUser) {
+        alert('الرجاء تسجيل الدخول أولاً');
+        return;
+      }
+      const date = document.getElementById('entryDate').value;
+      let type = document.getElementById('entryType').value;
+      if (forcedType) type = forcedType;
+      const amount = parseFloat(document.getElementById('entryAmount').value);
+      const category = document.getElementById('entryCategory').value;
+      const location = document.getElementById('entryLocation').value;
+      const notes = document.getElementById('entryNotes').value;
+      if (!date || isNaN(amount) || !category || !location) {
+        alert('الرجاء إدخال جميع البيانات المطلوبة');
+        return;
+      }
+      const entry = {
+        id: Date.now(),
+        date: date,
+        type: type,
+        amount: amount,
+        category: category,
+        location: location,
+        notes: notes,
+        user: currentUser
+      };
+      entries.push(entry);
+      clearEntryForm();
+      updateUI();
+      // Persist changes to Google Sheets
+      saveEntries();
+    }
+
+    // Clear entry form after submission
+    function clearEntryForm() {
+      document.getElementById('entryAmount').value = '';
+      document.getElementById('entryNotes').value = '';
+    }
+
+    // Delete entry by ID
+    function deleteEntry(id) {
+      entries = entries.filter(e => e.id !== id);
+      updateUI();
+      // Persist deletion to Google Sheets
+      saveEntries();
+    }
+
+    // Render entries and update totals
+    function updateUI() {
+      renderEntries();
+      updateTotals();
+    }
+
+    function renderEntries() {
+      const tbody = document.getElementById('entriesBody');
+      tbody.innerHTML = '';
+      entries.forEach(entry => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${entry.id}</td>
+          <td>${entry.date}</td>
+          <td>${translateType(entry.type)}</td>
+          <td>${entry.amount.toFixed(2)} ر.س</td>
+          <td>${entry.category}</td>
+          <td>${translateLocation(entry.location)}</td>
+          <td>${entry.user}</td>
+          <td>${entry.notes || ''}</td>
+          <td><button onclick="deleteEntry(${entry.id})">حذف</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Translate type and location for display
+    function translateType(t) {
+      switch (t) {
+        case 'expense': return 'مصروف';
+        case 'income': return 'إيراد';
+        case 'transfer': return 'تحويل';
+        default: return t;
+      }
+    }
+    function translateLocation(loc) {
+      return loc === 'cash' ? 'الصندوق' : 'البنك';
+    }
+
+    // Calculate and display totals
+    function updateTotals() {
+      let totalExpenses = 0;
+      let totalIncome = 0;
+      let cash = 0;
+      let bank = 0;
+      const catTotals = {};
+      categories.forEach(cat => { catTotals[cat] = 0; });
+      entries.forEach(entry => {
+        if (entry.type === 'expense') {
+          totalExpenses += entry.amount;
+          if (entry.location === 'cash') cash -= entry.amount;
+          else bank -= entry.amount;
+          if (catTotals.hasOwnProperty(entry.category)) catTotals[entry.category] += entry.amount;
+        } else if (entry.type === 'income') {
+          totalIncome += entry.amount;
+          if (entry.location === 'cash') cash += entry.amount;
+          else bank += entry.amount;
+        } else if (entry.type === 'transfer') {
+          // Transfer moves money from one location to another
+          if (entry.location === 'cash') {
+            // from cash to bank
+            cash -= entry.amount;
+            bank += entry.amount;
+          } else {
+            bank -= entry.amount;
+            cash += entry.amount;
+          }
+        }
+      });
+      document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2) + ' ر.س';
+      document.getElementById('totalIncome').textContent = totalIncome.toFixed(2) + ' ر.س';
+      document.getElementById('cashBalance').textContent = cash.toFixed(2) + ' ر.س';
+      document.getElementById('bankBalance').textContent = bank.toFixed(2) + ' ر.س';
+      const catContainer = document.getElementById('categoryTotals');
+      catContainer.innerHTML = '';
+      categories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'stat';
+        div.innerHTML = `<strong>${cat}</strong><div class="value">${catTotals[cat].toFixed(2)} ر.س</div>`;
+        catContainer.appendChild(div);
+      });
+    }
+  </script>
 </body>
 </html>
