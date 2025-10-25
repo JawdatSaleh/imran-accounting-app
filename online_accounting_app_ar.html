@@ -1,280 +1,379 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>حسابات مسجد المدينة</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>حسابات عمران الخليج</title>
 
-  <style>
-    body { font-family: Arial, Tahoma, sans-serif; background:#f6f7fb; margin:0; color:#222; }
-    header { background:#3b6fb3; color:#fff; padding:14px 18px; }
-    header h1 { margin:0; font-size:20px; }
-    .container { max-width:1150px; margin:20px auto; background:#fff; padding:18px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.06); }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; }
-    .card { background:#3b6fb3; color:#fff; padding:14px; border-radius:12px; text-align:center; position:relative; }
-    .card small { opacity:.9; display:block; margin-bottom:6px }
-    .card b { font-size:18px }
-    .edit-btn { position:absolute; top:6px; left:8px; background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:50%; width:22px; height:22px; cursor:pointer; font-size:14px; }
-    .edit-btn:hover { background:rgba(255,255,255,0.4); }
-    .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-    input, select, button { padding:10px 12px; border:1px solid #ddd; border-radius:10px; font-size:14px; }
-    button { background:#3b6fb3; color:#fff; border:none; cursor:pointer }
-    button:hover { filter:brightness(.98) }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th, td { border-bottom:1px solid #eee; padding:10px; text-align:center; }
-    thead th { background:#3b6fb3; color:#fff; position:sticky; top:0; }
-    .danger { background:#d7263d }
-    .success { background:#0a8f5a }
-    .muted { color:#666; }
-    .login { max-width:420px; margin:40px auto; text-align:center; }
-    .progress-container { background:#eaeaea; border-radius:10px; height:10px; overflow:hidden; margin-top:6px; }
-    .progress-bar { height:100%; background:#0a8f5a; width:0%; transition:width .4s; }
-  </style>
+<!-- ألوان وتصميم -->
+<style>
+  :root{
+    --brand:#5a9ff2;          /* الأزرق الفاتح */
+    --brand-dark:#4a90e2;     /* أغمق قليلًا للهوفر */
+    --ok:#0a8f5a;             /* أخضر */
+    --danger:#d7263d;         /* أحمر */
+  }
+  body{font-family:Arial,Tahoma,sans-serif;background:#f6f7fb;margin:0;color:#222}
+  header{background:var(--brand);color:#fff;padding:16px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  header h1{margin:0;font-size:20px}
 
-  <!-- Firebase SDKs -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  .container{max-width:1150px;margin:20px auto;background:#fff;padding:18px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.06)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .card{background:var(--brand);color:#fff;padding:14px;border-radius:12px;text-align:center;position:relative}
+  .card small{opacity:.9;display:block;margin-bottom:6px}
+  .card b{font-size:18px}
+  .edit-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:24px}
+  .edit-btn:hover{background:rgba(255,255,255,.4)}
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCKz2deoXAI_jBcclRuQS1bZCIROLZaYzs",
-      authDomain: "omran-accounting.firebaseapp.com",
-      projectId: "omran-accounting",
-      storageBucket: "omran-accounting.firebasestorage.app",
-      messagingSenderId: "839133682089",
-      appId: "1:839133682089:web:6b2f521e55dc5183848cb8",
-      measurementId: "G-NE88J3J52F"
-    };
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  input,select,button{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px}
+  button{background:var(--brand);color:#fff;border:none;cursor:pointer}
+  button:hover{background:var(--brand-dark)}
+  .btn-okay{background:var(--ok)} .btn-okay:hover{filter:brightness(.95)}
+  .btn-danger{background:var(--danger)} .btn-danger:hover{filter:brightness(.95)}
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-    const entriesRef = collection(db, "entries");
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{border-bottom:1px solid #eee;padding:10px;text-align:center}
+  thead th{background:var(--brand);color:#fff;position:sticky;top:0}
+  .muted{color:#666}
+  .login{max-width:420px;margin:40px auto;text-align:center}
+  .progress-container{background:#eaeaea;border-radius:10px;height:10px;overflow:hidden;margin-top:6px}
+  .progress-bar{height:100%;background:var(--ok);width:0%;transition:width .35s}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .toolbar input[type="search"]{min-width:260px}
+</style>
 
-    const users = { A1: "1234", A2: "5678" };
-    const categories = ["عهد مسجد المدينة","مصاريف A1","مصاريف A2","مصاريف المؤسسة","ديون","مصاريف الداير"];
-    let currentUser = null;
-    let entries = [];
+<!-- مكتبات التصدير -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/Ff4m3o9T1F1R7Jv6dFqz2n3nBvD6Y9FQqgq7nXk5I3V9wz2Qm+WcmykG6z2m0bZk2zYBqV0k3Tw2cQZc7mS4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" integrity="sha512-Lk1bY9L7l6g6q4gN6n9h8C1hX6V8qQF8HjQkzJ0JLu5GQnH9q3k9hK3b2vH1M0N4E8lqk+R2ZxU8b1rG7k0h+A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    // التوقعات الافتراضية (يمكن تعديلها)
-    let expectedTotals = {
-      "مصاريف الداير": 3000,
-      "مصاريف A1": 5000,
-      "مصاريف A2": 5000,
-      "عهد مسجد المدينة": 4000,
-      "مصاريف المؤسسة": 6000,
-      "ديون": 2000
-    };
+<!-- Firebase (App + Auth + Firestore) -->
+<script type="module">
+  /******** Firebase ********/
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-    const $ = (s)=>document.querySelector(s);
-    const tbody = $("#entriesBody");
+  const firebaseConfig = {
+    apiKey: "AIzaSyCKz2deoXAI_jBcclRuQS1bZCIROLZaYzs",
+    authDomain: "omran-accounting.firebaseapp.com",
+    projectId: "omran-accounting",
+    storageBucket: "omran-accounting.firebasestorage.app",
+    messagingSenderId: "839133682089",
+    appId: "1:839133682089:web:6b2f521e55dc5183848cb8",
+    measurementId: "G-NE88J3J52F"
+  };
 
-    function translateType(t){
-      if(t==="expense") return "مصروف";
-      if(t==="income") return "إيراد";
-      if(t==="transfer") return "تحويل";
-      return t;
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+  const entriesRef = collection(db, "entries");
+
+  /******** الحالة العامة ********/
+  const categories = ["عهد مسجد المدينة","مصاريف A1","مصاريف A2","مصاريف المؤسسة","ديون","مصاريف الداير"];
+  let entries = [];
+  let filteredEntries = [];
+  let currentUserEmail = null;
+
+  // التوقعات (تُحفظ محليًا)
+  const defaultExpected = {
+    "مصاريف الداير": 3000,
+    "مصاريف A1": 5000,
+    "مصاريف A2": 5000,
+    "عهد مسجد المدينة": 4000,
+    "مصاريف المؤسسة": 6000,
+    "ديون": 2000
+  };
+  let expectedTotals = JSON.parse(localStorage.getItem("expectedTotals")||"null") || structuredClone(defaultExpected);
+
+  /******** أدوات واجهة ********/
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const tbody = $("#entriesBody");
+
+  function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
+  function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
+
+  /******** مصادقة ********/
+  onAuthStateChanged(auth, async (user)=>{
+    if(user){
+      currentUserEmail = user.email;
+      $("#loginBox").style.display="none";
+      $("#app").style.display="block";
+      $("#userEmail").textContent = currentUserEmail;
+      $("#entryDate").valueAsDate = new Date();
+      populateCategories();
+      await loadEntries();
+    }else{
+      currentUserEmail = null;
+      $("#app").style.display="none";
+      $("#loginBox").style.display="block";
     }
-    function translateLocation(l){ return l==="cash" ? "الصندوق" : l==="bank" ? "البنك" : l; }
+  });
 
-    // زر تعديل المبلغ المتوقع
-    window.editExpected = (cat)=>{
-      const newVal = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat] || 0);
-      if(newVal !== null && !isNaN(parseFloat(newVal))){
-        expectedTotals[cat] = parseFloat(newVal);
-        updateTotals();
-      }
-    };
-
-    function updateTotals(){
-      let totalExpenses=0,totalIncome=0,cash=0,bank=0;
-      const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
-
-      entries.forEach(e=>{
-        const amount = Number(e.amount||0);
-        if(e.type==="expense"){
-          totalExpenses += amount;
-          if(e.location==="cash") cash -= amount; else bank -= amount;
-          if(catTotals[e.category]!=null) catTotals[e.category]+=amount;
-        } else if(e.type==="income"){
-          totalIncome += amount;
-          if(e.location==="cash") cash += amount; else bank += amount;
-        } else if(e.type==="transfer"){
-          if(e.location==="cash"){ cash -= amount; bank += amount; }
-          else { bank -= amount; cash += amount; }
-        }
-      });
-
-      $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
-      $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
-      $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
-      $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
-
-      const catRow = $("#categoryProgress");
-      catRow.innerHTML = "";
-      for (const [cat,total] of Object.entries(catTotals)) {
-        const expected = expectedTotals[cat] || 0;
-        const percent = expected ? Math.min((total/expected)*100,100) : 0;
-        const card = document.createElement("div");
-        card.className = "card";
-        const color = percent>=100 ? "#d7263d" : "#0a8f5a";
-        card.innerHTML = `
-          <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
-          <small>${cat}</small>
-          <b>${total.toFixed(2)} / ${expected.toFixed(2)} ر.س</b>
-          <div class="progress-container">
-            <div class="progress-bar" style="width:${percent}%;background:${color}"></div>
-          </div>
-        `;
-        catRow.appendChild(card);
-      }
+  window.login = async ()=>{
+    const email = $("#email").value.trim();
+    const password = $("#password").value;
+    if(!email || !password){ alert("أدخل البريد وكلمة المرور"); return; }
+    try{
+      await signInWithEmailAndPassword(auth, email, password);
+    }catch(err){
+      alert("تعذّر تسجيل الدخول: " + (err.message||err));
     }
+  };
 
-    function renderEntries(){
-      tbody.innerHTML = "";
-      entries.forEach(e=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${e.id?.slice?.(0,6) || e.id || ""}</td>
-          <td>${e.date || ""}</td>
-          <td>${translateType(e.type)}</td>
-          <td>${Number(e.amount||0).toFixed(2)}</td>
-          <td>${e.category||""}</td>
-          <td>${translateLocation(e.location)}</td>
-          <td>${e.user||""}</td>
-          <td>${e.notes||""}</td>
-          <td><button class="danger" onclick="deleteEntry('${e.id}')">حذف</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
+  window.logout = ()=> signOut(auth);
+
+  window.resetPassword = async ()=>{
+    const email = $("#email").value.trim();
+    if(!email) return alert("أدخل بريدك في خانة البريد ثم اضغط استعادة كلمة المرور.");
+    try{
+      await sendPasswordResetEmail(auth, email);
+      alert("تم إرسال رابط تغيير كلمة المرور إلى بريدك.");
+    }catch(e){ alert("تعذّر الإرسال: "+(e.message||e)); }
+  };
+
+  /******** تحميل / حفظ / حذف ********/
+  async function loadEntries(){
+    const qy = query(entriesRef, orderBy("createdAt","desc"));
+    const snap = await getDocs(qy).catch(async ()=> await getDocs(entriesRef));
+    const list = [];
+    snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
+    list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
+    entries = list;
+    filteredEntries = list;
+    renderEntries();
+  }
+
+  async function saveEntry(entry){
+    await addDoc(entriesRef, { ...entry, createdAt: serverTimestamp() });
+  }
+
+  async function removeEntry(id){
+    await deleteDoc(doc(db,"entries",id));
+  }
+
+  window.deleteEntry = async (id)=>{
+    if(!confirm("تأكيد حذف السجل؟")) return;
+    await removeEntry(id);
+    await loadEntries();
+  };
+
+  /******** بطاقات / توقعات ********/
+  window.editExpected = (cat)=>{
+    const nv = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat]??0);
+    if(nv!==null && !isNaN(parseFloat(nv))){
+      expectedTotals[cat] = parseFloat(nv);
+      localStorage.setItem("expectedTotals", JSON.stringify(expectedTotals));
       updateTotals();
     }
+  };
 
-    function populateCategories(){
-      const sel = $("#entryCategory");
-      sel.innerHTML = "";
-      categories.forEach(c=>{
-        const opt=document.createElement("option");
-        opt.value=c; opt.textContent=c;
-        sel.appendChild(opt);
-      });
-    }
+  function updateTotals(){
+    let totalExpenses=0,totalIncome=0,cash=0,bank=0;
+    const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
 
-    async function loadEntries(){
-      const q = query(entriesRef, orderBy("createdAt", "desc"));
-      const snap = await getDocs(q).catch(async ()=>await getDocs(entriesRef));
-      const list = [];
-      snap.forEach(d=> list.push({ id: d.id, ...d.data() }));
-      list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
-      entries = list;
-      renderEntries();
-    }
-
-    async function saveEntry(entry){
-      await addDoc(entriesRef, { ...entry, createdAt: serverTimestamp() });
-    }
-    async function removeEntry(id){
-      await deleteDoc(doc(db, "entries", id));
-    }
-
-    window.loadEntries = loadEntries;
-    window.saveEntry  = saveEntry;
-    window.deleteEntry = async (id)=>{
-      if(!confirm("تأكيد حذف السجل؟")) return;
-      await removeEntry(id);
-      await loadEntries();
-    };
-
-    window.login = async ()=>{
-      const u = $("#usernameSelect").value;
-      const p = $("#passwordInput").value;
-      if(users[u] && users[u]===p){
-        currentUser = u;
-        $("#loginBox").style.display="none";
-        $("#app").style.display="block";
-        $("#entryDate").valueAsDate = new Date();
-        populateCategories();
-        await loadEntries();
-      } else alert("❌ اسم المستخدم أو كلمة المرور غير صحيحة");
-    };
-
-    window.submitEntry = async (forcedType)=>{
-      if(!currentUser){ alert("يرجى تسجيل الدخول أولاً"); return; }
-      const date = $("#entryDate").value;
-      const type = forcedType || $("#entryType").value;
-      const amount = parseFloat($("#entryAmount").value);
-      const category = $("#entryCategory").value;
-      const location = $("#entryLocation").value;
-      const notes = $("#entryNotes").value;
-      if(!date || Number.isNaN(amount) || !category || !location){
-        alert("الرجاء إدخال جميع الحقول المطلوبة"); return;
+    filteredEntries.forEach(e=>{
+      const amount = Number(e.amount||0);
+      if(e.type==="expense"){
+        totalExpenses += amount;
+        if(e.location==="cash") cash -= amount; else bank -= amount;
+        if(catTotals[e.category]!=null) catTotals[e.category]+=amount;
+      }else if(e.type==="income"){
+        totalIncome += amount;
+        if(e.location==="cash") cash += amount; else bank += amount;
+      }else if(e.type==="transfer"){
+        if(e.location==="cash"){ cash -= amount; bank += amount; }
+        else { bank -= amount; cash += amount; }
       }
-      const entry = { date, type, amount, category, location, user: currentUser, notes };
-      await saveEntry(entry);
-      $("#entryAmount").value = ""; $("#entryNotes").value = "";
-      await loadEntries();
-      alert("✅ تم حفظ السجل في Firebase");
-    };
-    populateCategories();
-  </script>
+    });
+
+    $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
+    $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
+    $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
+    $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
+
+    const row = $("#categoryProgress");
+    row.innerHTML = "";
+    for(const cat of categories){
+      const sum = catTotals[cat]||0;
+      const exp = expectedTotals[cat]||0;
+      const perc = exp? Math.min(sum/exp*100,100):0;
+      const barColor = perc>=100? "var(--danger)" : "var(--ok)";
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
+        <small>${cat}</small>
+        <b>${sum.toFixed(2)} / ${exp.toFixed(2)} ر.س</b>
+        <div class="progress-container">
+          <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
+        </div>`;
+      row.appendChild(card);
+    }
+  }
+
+  /******** عرض الجدول ********/
+  function renderEntries(){
+    tbody.innerHTML = "";
+    filteredEntries.forEach(e=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${e.id?.slice?.(0,6)||e.id||""}</td>
+        <td>${e.date||""}</td>
+        <td>${translateType(e.type)}</td>
+        <td>${Number(e.amount||0).toFixed(2)}</td>
+        <td>${e.category||""}</td>
+        <td>${translateLocation(e.location)}</td>
+        <td>${e.user||""}</td>
+        <td>${e.notes||""}</td>
+        <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>`;
+      tbody.appendChild(tr);
+    });
+    updateTotals();
+  }
+
+  function populateCategories(){
+    const sel = $("#entryCategory");
+    sel.innerHTML = "";
+    categories.forEach(c=>{
+      const opt = document.createElement("option");
+      opt.value=c; opt.textContent=c;
+      sel.appendChild(opt);
+    });
+  }
+
+  /******** حفظ إدخال جديد ********/
+  window.submitEntry = async ()=>{
+    if(!currentUserEmail){ alert("يرجى تسجيل الدخول أولًا"); return; }
+    const date = $("#entryDate").value;
+    const type = $("#entryType").value;
+    const amount = parseFloat($("#entryAmount").value);
+    const category = $("#entryCategory").value;
+    const location = $("#entryLocation").value;
+    const notes = $("#entryNotes").value;
+    if(!date || Number.isNaN(amount) || !category || !location){
+      alert("الرجاء إدخال جميع الحقول المطلوبة"); return;
+    }
+    const entry = { date, type, amount, category, location, user: currentUserEmail, notes };
+    await saveEntry(entry);
+    $("#entryAmount").value=""; $("#entryNotes").value="";
+    await loadEntries();
+    alert("✅ تم الحفظ");
+  };
+
+  /******** البحث الفوري ********/
+  $("#searchBox").addEventListener("input", ()=>{
+    const q = $("#searchBox").value.trim().toLowerCase();
+    if(!q){ filteredEntries = [...entries]; renderEntries(); return; }
+    filteredEntries = entries.filter(e=>{
+      return [e.id, e.date, e.type, e.amount, e.category, e.location, e.user, e.notes]
+        .map(x=> (x??"").toString().toLowerCase()).some(v=> v.includes(q));
+    });
+    renderEntries();
+  });
+
+  /******** تصدير ********/
+  window.exportPDF = ()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:"l", unit:"pt"});
+    doc.text("حسابات عمران الخليج - السجلات", 40, 30);
+    const rows = filteredEntries.map(e=>[
+      e.id, e.date, translateType(e.type), Number(e.amount||0).toFixed(2),
+      e.category, translateLocation(e.location), e.user||"", e.notes||""
+    ]);
+    doc.autoTable({
+      head:[["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"]],
+      body:rows, startY:50
+    });
+    doc.save("omran-entries.pdf");
+  };
+
+  window.exportXLSX = ()=>{
+    const data = [
+      ["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"],
+      ...filteredEntries.map(e=>[
+        e.id, e.date, translateType(e.type), Number(e.amount||0),
+        e.category, translateLocation(e.location), e.user||"", e.notes||""
+      ])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "السجلات");
+    XLSX.writeFile(wb, "omran-entries.xlsx");
+  };
+</script>
 </head>
 <body>
 
-  <header>
-    <h1>حسابات عمران الخليج – يعمل بـ Firebase Firestore</h1>
-  </header>
+<header>
+  <h1>حسابات عمران الخليج</h1>
+</header>
 
-  <!-- تسجيل الدخول -->
-  <div id="loginBox" class="container login">
-    <h3>تسجيل الدخول</h3>
-    <div class="row" style="justify-content:center">
-      <select id="usernameSelect"><option value="A1">A1</option><option value="A2">A2</option></select>
-      <input id="passwordInput" type="password" placeholder="كلمة المرور" />
-      <button onclick="login()">دخول</button>
-    </div>
+<!-- شاشة دخول آمنة -->
+<div id="loginBox" class="container login">
+  <h3>تسجيل الدخول</h3>
+  <div class="row" style="justify-content:center">
+    <input id="email" type="email" placeholder="البريد الإلكتروني" />
+    <input id="password" type="password" placeholder="كلمة المرور" />
+    <button onclick="login()">دخول</button>
+    <button class="btn-okay" onclick="resetPassword()" title="إرسال رابط تغيير كلمة المرور">استعادة كلمة المرور</button>
+  </div>
+  <p class="muted">التسجيل مُغلق — فقط حسابات تتم إضافتها من Firebase Console تستطيع الدخول.</p>
+</div>
+
+<!-- التطبيق -->
+<div id="app" class="container" style="display:none;">
+  <div class="toolbar">
+    <span class="muted">مرحبًا: <b id="userEmail"></b></span>
+    <input id="searchBox" type="search" placeholder="بحث في السجلات..." />
+    <button onclick="exportPDF()">تصدير PDF</button>
+    <button onclick="exportXLSX()">تصدير Excel</button>
+    <button class="btn-danger" style="margin-right:auto" onclick="logout()">تسجيل الخروج</button>
   </div>
 
-  <!-- التطبيق -->
-  <div id="app" class="container" style="display:none;">
-    <div class="grid">
-      <div class="card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
-      <div class="card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
-      <div class="card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
-      <div class="card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
-    </div>
-
-    <!-- صف جديد للمصاريف التفصيلية -->
-    <div id="categoryProgress" class="grid" style="margin-top:10px;"></div>
-
-    <h3 style="margin-top:16px">إضافة عملية</h3>
-    <div class="row">
-      <input type="date" id="entryDate">
-      <select id="entryType">
-        <option value="expense">مصروف</option>
-        <option value="income">إيراد</option>
-        <option value="transfer">تحويل</option>
-      </select>
-      <input type="number" id="entryAmount" step="0.01" placeholder="المبلغ (ر.س)">
-      <select id="entryCategory"></select>
-      <select id="entryLocation">
-        <option value="cash">الصندوق</option>
-        <option value="bank">البنك</option>
-      </select>
-      <input type="text" id="entryNotes" placeholder="ملاحظات">
-      <button class="success" onclick="submitEntry()">إضافة</button>
-    </div>
-
-    <h3 style="margin-top:12px">السجلات</h3>
-    <div style="overflow:auto; max-height:60vh;">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الفئة</th>
-            <th>الموقع</th><th>المستخدم</th><th>ملاحظات</th><th>إجراء</th>
-          </tr>
-        </thead>
-        <tbody id="entriesBody"></tbody>
-      </table>
-    </div>
+  <!-- بطاقات إجماليات -->
+  <div class="grid">
+    <div class="card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
+    <div class="card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
+    <div class="card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
+    <div class="card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
   </div>
+
+  <!-- بطاقات الفئات + القلم -->
+  <div id="categoryProgress" class="grid" style="margin-top:10px;"></div>
+
+  <h3 style="margin-top:16px">إضافة عملية</h3>
+  <div class="row">
+    <input type="date" id="entryDate">
+    <select id="entryType">
+      <option value="expense">مصروف</option>
+      <option value="income">إيراد</option>
+      <option value="transfer">تحويل</option>
+    </select>
+    <input type="number" id="entryAmount" step="0.01" placeholder="المبلغ (ر.س)">
+    <select id="entryCategory"></select>
+    <select id="entryLocation">
+      <option value="cash">الصندوق</option>
+      <option value="bank">البنك</option>
+    </select>
+    <input type="text" id="entryNotes" placeholder="ملاحظات">
+    <button class="btn-okay" onclick="submitEntry()">إضافة</button>
+  </div>
+
+  <h3 style="margin-top:12px">السجلات</h3>
+  <div style="overflow:auto; max-height:60vh;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الفئة</th>
+          <th>الموقع</th><th>المستخدم</th><th>ملاحظات</th><th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="entriesBody"></tbody>
+    </table>
+  </div>
+</div>
 </body>
 </html>
