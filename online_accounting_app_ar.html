@@ -51,6 +51,7 @@
   .progress-bar{position:absolute;inset:0;height:100%;background:linear-gradient(90deg,var(--ok),#13bd7d);width:0%;transition:width .8s cubic-bezier(.4,0,.2,1)}
   .progress-shell[data-alert="true"] .progress-bar{background:linear-gradient(90deg,var(--danger),#ff5f7b)}
   .progress-label{position:absolute;top:50%;inset-inline-start:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:var(--text-main);text-shadow:0 0 3px rgba(255,255,255,.8)}
+  .currency-symbol{font-size:0.75em;opacity:0.85;margin-inline-start:4px;display:inline-block;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #d6d9e5;border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--text-main);transition:border-color .25s,box-shadow .25s}
@@ -184,6 +185,8 @@
   const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
   const roundNumber = value => Math.round(Number(value) || 0);
   const formatNumber = value => numberFormatter.format(roundNumber(value));
+  const currencySymbol = '<span class="currency-symbol">﷼</span>';
+  const formatCurrency = value => `${formatNumber(value)} ${currencySymbol}`;
 
   /******** مصادقة ********/
   onAuthStateChanged(auth, async (user)=>{
@@ -269,10 +272,10 @@
       }
     });
 
-    $("#totalExpenses").textContent = formatNumber(totalExpenses)+" ر.س";
-    $("#totalIncome").textContent  = formatNumber(totalIncome)+" ر.س";
-    $("#cashBalance").textContent  = formatNumber(cash)+" ر.س";
-    $("#bankBalance").textContent  = formatNumber(bank)+" ر.س";
+    $("#totalExpenses").innerHTML = formatCurrency(totalExpenses);
+    $("#totalIncome").innerHTML  = formatCurrency(totalIncome);
+    $("#cashBalance").innerHTML  = formatCurrency(cash);
+    $("#bankBalance").innerHTML  = formatCurrency(bank);
 
     const row = $("#categoryProgress");
     row.innerHTML = "";
@@ -288,14 +291,14 @@
       let remainingClass = "card-remaining";
       if(hasExpectation){
         if(remainingValue >= 0){
-          remainingText = `المتبقي <strong>${formatNumber(remainingValue)} ر.س</strong>`;
+          remainingText = `المتبقي <strong>${formatCurrency(remainingValue)}</strong>`;
         }else{
-          remainingText = `تم تجاوز المتوقع بـ <strong>${formatNumber(Math.abs(remainingValue))} ر.س</strong>`;
+          remainingText = `تم تجاوز المتوقع بـ <strong>${formatCurrency(Math.abs(remainingValue))}</strong>`;
           remainingClass += " exceeded";
         }
       }
 
-      const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + formatNumber(exp) + ' ر.س</div>' : '';
+      const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + formatCurrency(exp) + '</div>' : '';
       const progressLabel = hasExpectation ? `${Math.round(rawPerc)}%` : "—";
       const card = document.createElement("div");
       card.className = "card category-card";
@@ -304,7 +307,7 @@
           <span class="card-title">${cat}</span>
         </div>
         ${subtitle}
-        <div class="card-amount">${formatNumber(sum)} ر.س</div>
+        <div class="card-amount">${formatCurrency(sum)}</div>
         <div class="card-remaining${remainingClass.includes("exceeded")?" exceeded":""}">${remainingText}</div>
         <div class="progress-shell" data-progress="${perc}" data-alert="${alertState}">
           <div class="progress-bar"></div>
@@ -477,10 +480,10 @@
 
   <!-- بطاقات إجماليات -->
   <div class="grid">
-    <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
-    <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
-    <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
-    <div class="card summary-card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
+    <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 <span class="currency-symbol">﷼</span></b></div>
+    <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 <span class="currency-symbol">﷼</span></b></div>
+    <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 <span class="currency-symbol">﷼</span></b></div>
+    <div class="card summary-card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 <span class="currency-symbol">﷼</span></b></div>
   </div>
 
   <!-- بطاقات الفئات + القلم -->
@@ -494,7 +497,7 @@
       <option value="income">إيراد</option>
       <option value="transfer">تحويل</option>
     </select>
-    <input type="number" id="entryAmount" step="0.01" placeholder="المبلغ (ر.س)">
+    <input type="number" id="entryAmount" step="0.01" placeholder="المبلغ (﷼)">
     <select id="entryCategory"></select>
     <select id="entryLocation">
       <option value="cash">الصندوق</option>
