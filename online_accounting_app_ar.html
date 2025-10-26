@@ -358,16 +358,17 @@
       const amount = safeAmount(e.amount);
       const normalizedType = normalizeType(e.type);
       const normalizedLocation = normalizeLocation(e.location);
+      const categoryKey = (e.category??"").trim();
       if(normalizedType==="expense"){
         totalExpenses += amount;
         if(normalizedLocation==="cash") cash -= amount;
         else if(normalizedLocation==="bank") bank -= amount;
-        const categoryKey = (e.category??"").trim();
-        if(catTotals[categoryKey]!=null) catTotals[categoryKey]+=amount;
+        if(catTotals[categoryKey]!=null) catTotals[categoryKey]-=amount;
       }else if(normalizedType==="income"){
         totalIncome += amount;
         if(normalizedLocation==="cash") cash += amount;
         else if(normalizedLocation==="bank") bank += amount;
+        if(catTotals[categoryKey]!=null) catTotals[categoryKey]+=amount;
       }else if(normalizedType==="transfer"){
         if(normalizedLocation==="cash"){ cash -= amount; bank += amount; }
         else if(normalizedLocation==="bank"){ bank -= amount; cash += amount; }
