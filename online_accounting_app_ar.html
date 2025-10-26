@@ -19,11 +19,65 @@
 
   .container{max-width:1150px;margin:20px auto;background:#fff;padding:18px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.06)}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-  .card{background:var(--brand);color:#fff;padding:14px;border-radius:12px;text-align:center;position:relative}
-  .card small{opacity:.9;display:block;margin-bottom:6px}
-  .card b{font-size:18px}
-  .edit-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:24px}
-  .edit-btn:hover{background:rgba(255,255,255,.4)}
+  .card{
+  background:var(--brand);
+  color:#fff;
+  padding:18px;
+  border-radius:14px;
+  text-align:center;
+  position:relative;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+  transition:transform .2s;
+}
+.card:hover{transform:translateY(-3px);}
+.card .big{
+  font-size:28px;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+.card .expected{
+  font-size:13px;
+  opacity:.9;
+  margin-top:4px;
+}
+.edit-btn{
+  position:absolute;
+  top:8px;
+  right:8px;
+  background:rgba(255,255,255,.25);
+  border:none;
+  color:#fff;
+  border-radius:50%;
+  width:26px;
+  height:26px;
+  cursor:pointer;
+  font-size:14px;
+  line-height:26px;
+}
+.progress-container{
+  background:#eaeaea;
+  border-radius:10px;
+  height:12px;
+  overflow:hidden;
+  margin-top:8px;
+  position:relative;
+}
+.progress-bar{
+  height:100%;
+  background:var(--ok);
+  width:0%;
+  transition:width .35s;
+}
+.progress-container span{
+  position:absolute;
+  top:-22px;
+  right:10px;
+  font-size:12px;
+  color:#fff;
+  background:rgba(0,0,0,.25);
+  padding:2px 6px;
+  border-radius:6px;
+}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px}
@@ -196,22 +250,44 @@
 
     const row = $("#categoryProgress");
     row.innerHTML = "";
-    for(const cat of categories){
-      const sum = catTotals[cat]||0;
-      const exp = expectedTotals[cat]||0;
-      const perc = exp? Math.min(sum/exp*100,100):0;
-      const barColor = perc>=100? "var(--danger)" : "var(--ok)";
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
-        <small>${cat}</small>
-        <b>${sum.toFixed(2)} / ${exp.toFixed(2)} ر.س</b>
-        <div class="progress-container">
-          <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-        </div>`;
-      row.appendChild(card);
-    }
+    // بطاقة الإيرادات بنفس تصميم الفئات
+const incomeExpected = expectedTotals["إجمالي الإيرادات"] || 8000;
+const remainingIncome = Math.max(incomeExpected - totalIncome, 0);
+const percIncome = incomeExpected ? Math.min(totalIncome / incomeExpected * 100, 100) : 0;
+const barColorIncome = percIncome >= 100 ? "var(--danger)" : "var(--ok)";
+const incomeCard = document.createElement("div");
+incomeCard.className = "card";
+incomeCard.innerHTML = `
+  <button class="edit-btn" title="تعديل الإيرادات المتوقعة" onclick="editExpected('إجمالي الإيرادات')">✏️</button>
+  <div class="big">${totalIncome.toFixed(2)} ر.س</div>
+  <div class="expected">المتبقي: ${remainingIncome.toFixed(2)} من ${incomeExpected.toFixed(2)} ر.س</div>
+  <div class="progress-container">
+    <div class="progress-bar" style="width:${percIncome}%;background:${barColorIncome}"></div>
+    <span>${(100 - percIncome).toFixed(1)}% متبقي</span>
+  </div>
+  <small>إجمالي الإيرادات</small>
+`;
+row.appendChild(incomeCard);
+   for(const cat of categories){
+  const sum = catTotals[cat]||0;
+  const exp = expectedTotals[cat]||0;
+  const remaining = Math.max(exp - sum, 0);
+  const perc = exp ? Math.min(sum / exp * 100, 100) : 0;
+  const barColor = perc >= 100 ? "var(--danger)" : "var(--ok)";
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
+    <div class="big">${sum.toFixed(2)} ر.س</div>
+    <div class="expected">المتبقي: ${remaining.toFixed(2)} من ${exp.toFixed(2)} ر.س</div>
+    <div class="progress-container">
+      <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
+      <span>${(100 - perc).toFixed(1)}% متبقي</span>
+    </div>
+    <small>${cat}</small>
+  `;
+  row.appendChild(card);
+}
   }
 
   /******** عرض الجدول ********/
