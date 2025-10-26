@@ -26,28 +26,26 @@
   header h1{margin:0;font-size:22px;font-weight:700}
 
   .container{max-width:1200px;margin:24px auto;background:var(--surface);padding:22px;border-radius:20px;box-shadow:0 16px 35px rgba(15,23,42,.08)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-  .card{background:linear-gradient(135deg,var(--surface),#f3f7ff);color:var(--text-main);padding:16px;border-radius:18px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 24px rgba(15,23,42,.08);min-height:130px;position:relative;overflow:hidden}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .card{background:linear-gradient(135deg,var(--surface),#f3f7ff);color:var(--text-main);padding:14px;border-radius:16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 10px 20px rgba(15,23,42,.06);min-height:110px;position:relative;overflow:hidden}
   .card::after{content:"";position:absolute;inset:auto -40px -60px auto;width:160px;height:160px;background:radial-gradient(circle at center,rgba(90,159,242,.25),transparent 70%);transform:rotate(-12deg)}
-  .card small{font-size:14px;color:var(--text-muted);font-weight:600}
-  .card b{font-size:26px;font-weight:700;color:var(--brand-dark)}
-  .summary-card{min-height:110px;padding:18px;background:linear-gradient(140deg,rgba(90,159,242,.15),rgba(10,143,90,.12));border:1px solid rgba(90,159,242,.25)}
+  .card small{font-size:12px;color:var(--text-muted);font-weight:600}
+  .card b{font-size:20px;font-weight:700;color:var(--brand-dark)}
+  .summary-card{min-height:95px;padding:16px;background:linear-gradient(140deg,rgba(90,159,242,.15),rgba(10,143,90,.12));border:1px solid rgba(90,159,242,.22)}
 
-  .category-card{background:linear-gradient(160deg,var(--surface),#edf4ff);border:1px solid rgba(90,159,242,.18);min-height:130px}
-  .card-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .card-title{font-size:16px;font-weight:700;color:var(--text-main)}
-  .card-subtitle{font-size:12px;color:var(--text-muted)}
-  .edit-btn{background:rgba(90,159,242,.14);border:none;color:var(--brand-dark);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .25s ease}
-  .edit-btn:hover{background:rgba(90,159,242,.24)}
-  .card-amount{font-size:30px;font-weight:700;color:var(--brand-dark)}
-  .card-remaining{font-size:14px;color:var(--text-muted);margin-top:auto}
+  .category-card{background:linear-gradient(160deg,var(--surface),#edf4ff);border:1px solid rgba(90,159,242,.18);min-height:110px}
+  .card-header{display:flex;justify-content:flex-start;align-items:center;gap:12px}
+  .card-title{font-size:15px;font-weight:700;color:var(--text-main)}
+  .card-subtitle{font-size:11px;color:var(--text-muted)}
+  .card-amount{font-size:22px;font-weight:700;color:var(--brand-dark)}
+  .card-remaining{font-size:13px;color:var(--text-muted);margin-top:auto}
   .card-remaining strong{color:var(--ok)}
   .card-remaining.exceeded{color:var(--danger)}
   .card-remaining.exceeded strong{color:inherit}
-  .progress-shell{position:relative;background:#e9edf8;border-radius:999px;height:10px;overflow:hidden;margin-top:10px}
+  .progress-shell{position:relative;background:#e9edf8;border-radius:999px;height:8px;overflow:hidden;margin-top:8px}
   .progress-bar{position:absolute;inset:0;height:100%;background:linear-gradient(90deg,var(--ok),#13bd7d);width:0%;transition:width .8s cubic-bezier(.4,0,.2,1)}
   .progress-shell[data-alert="true"] .progress-bar{background:linear-gradient(90deg,var(--danger),#ff5f7b)}
-  .progress-label{position:absolute;top:50%;inset-inline-start:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:var(--text-main);text-shadow:0 0 3px rgba(255,255,255,.8)}
+  .progress-label{position:absolute;top:50%;inset-inline-start:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:var(--text-main);text-shadow:0 0 3px rgba(255,255,255,.8)}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #d6d9e5;border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--text-main);transition:border-color .25s,box-shadow .25s}
@@ -106,7 +104,7 @@
   let filteredEntries = [];
   let currentUserEmail = null;
 
-  // التوقعات (تُحفظ محليًا)
+  // التوقعات (تُستخدم للعرض فقط)
   const defaultExpected = {
     "مصاريف الداير": 100000,
     "مصاريف A1": 226000,
@@ -115,7 +113,7 @@
     "مصاريف المؤسسة": 25000,
     "ديون": 80000
   };
-  let expectedTotals = JSON.parse(localStorage.getItem("expectedTotals")||"null") || structuredClone(defaultExpected);
+  const expectedTotals = structuredClone(defaultExpected);
 
   /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
@@ -131,6 +129,14 @@
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
+  const userCodes = {
+    "jawdat.saleh99@gmail.com": "A2",
+    "emad.lk9@gmail.com": "A1"
+  };
+  function getUserCode(email){
+    if(!email) return "";
+    return userCodes[email] || email;
+  }
 
   /******** مصادقة ********/
   onAuthStateChanged(auth, async (user)=>{
@@ -197,15 +203,6 @@
   };
 
   /******** بطاقات / توقعات ********/
-  window.editExpected = (cat)=>{
-    const nv = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat]??0);
-    if(nv!==null && !isNaN(parseFloat(nv))){
-      expectedTotals[cat] = parseFloat(nv);
-      localStorage.setItem("expectedTotals", JSON.stringify(expectedTotals));
-      updateTotals();
-    }
-  };
-
   function updateTotals(){
     let totalExpenses=0,totalIncome=0,cash=0,bank=0;
     const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
@@ -258,7 +255,6 @@
       card.innerHTML = `
         <div class="card-header">
           <span class="card-title">${cat}</span>
-          <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">تعديل التوقع</button>
         </div>
         ${subtitle}
         <div class="card-amount">${sum.toFixed(2)} ر.س</div>
@@ -293,7 +289,7 @@
         <td>${Number(e.amount||0).toFixed(2)}</td>
         <td>${e.category||""}</td>
         <td>${translateLocation(e.location)}</td>
-        <td>${e.user||""}</td>
+        <td>${getUserCode(e.user)}</td>
         <td>${e.notes||""}</td>
         <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>`;
       tbody.appendChild(tr);
@@ -383,7 +379,7 @@
     doc.text("حسابات عمران الخليج - السجلات", 40, 30);
     const rows = filteredEntries.map(e=>[
       e.id, e.date, translateType(e.type), Number(e.amount||0).toFixed(2),
-      e.category, translateLocation(e.location), e.user||"", e.notes||""
+      e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
     ]);
     doc.autoTable({
       head:[["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"]],
@@ -397,7 +393,7 @@
       ["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"],
       ...filteredEntries.map(e=>[
         e.id, e.date, translateType(e.type), Number(e.amount||0),
-        e.category, translateLocation(e.location), e.user||"", e.notes||""
+        e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
       ])
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
