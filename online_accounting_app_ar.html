@@ -53,6 +53,11 @@
   .card-remaining strong{color:var(--ok)}
   .card-remaining.exceeded{color:var(--danger)}
   .card-remaining.exceeded strong{color:inherit}
+  .revenue-card{min-height:110px}
+  .revenue-card .card-header{justify-content:space-between}
+  .revenue-card .card-title{font-size:14px}
+  .revenue-card .card-subtitle{font-size:11px}
+  .revenue-card .card-amount{font-size:20px}
   .progress-shell{position:relative;background:#e9edf8;border-radius:999px;height:8px;overflow:hidden;margin-top:8px}
   .progress-bar{position:absolute;inset:0;height:100%;background:linear-gradient(90deg,var(--ok),#13bd7d);width:0%;transition:width .8s cubic-bezier(.4,0,.2,1)}
   .progress-shell[data-alert="true"] .progress-bar{background:linear-gradient(90deg,var(--danger),#ff5f7b)}
@@ -164,6 +169,7 @@
     "ديون": 80000
   };
   const expectedTotals = structuredClone(defaultExpected);
+  const revenueTarget = 983625;
 
   /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
@@ -283,7 +289,53 @@
     });
 
     $("#totalExpenses").innerHTML = formatCurrency(totalExpenses);
-    $("#totalIncome").innerHTML  = formatCurrency(totalIncome);
+    const totalIncomeAmountEl = $("#totalIncomeAmount");
+    const totalIncomeTargetEl = $("#totalIncomeTarget");
+    const totalIncomeRemainingEl = $("#totalIncomeRemaining");
+    const totalIncomeShell = $("#totalIncomeProgressShell");
+    const totalIncomeLabel = $("#totalIncomeProgressLabel");
+
+    if(totalIncomeAmountEl){
+      totalIncomeAmountEl.innerHTML = formatCurrency(totalIncome);
+    }
+    if(totalIncomeTargetEl){
+      totalIncomeTargetEl.innerHTML = `من أصل ${formatCurrency(revenueTarget)}`;
+    }
+    if(totalIncomeRemainingEl){
+      const remaining = revenueTarget - totalIncome;
+      const hasTarget = revenueTarget > 0;
+      let text = "لم يتم تحديد هدف";
+      if(hasTarget){
+        if(remaining >= 0){
+          text = `المتبقي <strong>${formatCurrency(remaining)}</strong>`;
+          totalIncomeRemainingEl.classList.remove("exceeded");
+        }else{
+          text = `تم تجاوز الهدف بـ <strong>${formatCurrency(Math.abs(remaining))}</strong>`;
+          totalIncomeRemainingEl.classList.add("exceeded");
+        }
+      }else{
+        totalIncomeRemainingEl.classList.remove("exceeded");
+      }
+      totalIncomeRemainingEl.innerHTML = text;
+    }
+    if(totalIncomeShell){
+      const rawPerc = revenueTarget > 0 ? (totalIncome / revenueTarget) * 100 : 0;
+      const clampedPerc = revenueTarget > 0 ? Math.min(Math.max(rawPerc, 0), 100) : 0;
+      totalIncomeShell.dataset.progress = clampedPerc;
+      totalIncomeShell.dataset.alert = rawPerc >= 100;
+      const bar = totalIncomeShell.querySelector(".progress-bar");
+      if(bar){
+        bar.style.width = "0%";
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            bar.style.width = `${totalIncomeShell.dataset.progress}%`;
+          });
+        });
+      }
+      if(totalIncomeLabel){
+        totalIncomeLabel.textContent = revenueTarget > 0 ? `${Math.round(rawPerc)}%` : "—";
+      }
+    }
     $("#cashBalance").innerHTML  = formatCurrency(cash);
     $("#bankBalance").innerHTML  = formatCurrency(bank);
 
@@ -494,7 +546,18 @@
     <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 <span class="currency-symbol">﷼</span></b></div>
     <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 <span class="currency-symbol">﷼</span></b></div>
     <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 <span class="currency-symbol">﷼</span></b></div>
-    <div class="card summary-card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 <span class="currency-symbol">﷼</span></b></div>
+    <div class="card category-card revenue-card">
+      <div class="card-header">
+        <span class="card-title">إجمالي الإيرادات</span>
+      </div>
+      <div class="card-subtitle" id="totalIncomeTarget">من أصل 983,625 <span class="currency-symbol">﷼</span></div>
+      <div class="card-amount" id="totalIncomeAmount">0 <span class="currency-symbol">﷼</span></div>
+      <div class="card-remaining" id="totalIncomeRemaining">المتبقي <strong>983,625 <span class="currency-symbol">﷼</span></strong></div>
+      <div class="progress-shell" id="totalIncomeProgressShell" data-progress="0" data-alert="false">
+        <div class="progress-bar"></div>
+        <span class="progress-label" id="totalIncomeProgressLabel">0%</span>
+      </div>
+    </div>
   </div>
 
   <!-- بطاقات الفئات + القلم -->
