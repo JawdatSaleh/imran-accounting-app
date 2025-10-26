@@ -31,7 +31,11 @@
   .card::after{content:"";position:absolute;inset:auto -40px -60px auto;width:160px;height:160px;background:radial-gradient(circle at center,rgba(90,159,242,.25),transparent 70%);transform:rotate(-12deg)}
   .card small{font-size:12px;color:var(--text-muted);font-weight:600}
   .card b{font-size:20px;font-weight:700;color:var(--brand-dark)}
-  .summary-card{min-height:95px;padding:16px;background:linear-gradient(140deg,rgba(90,159,242,.15),rgba(10,143,90,.12));border:1px solid rgba(90,159,242,.22)}
+  .summary-card{min-height:28px;padding:10px 12px;gap:2px;background:linear-gradient(140deg,rgba(90,159,242,.15),rgba(10,143,90,.12));border:1px solid rgba(90,159,242,.22)}
+  .summary-card small{line-height:1.2}
+  .summary-card b{line-height:1.15}
+  .summary-card.cash-card{background:linear-gradient(140deg,rgba(215,38,61,.18),rgba(215,38,61,.32));border-color:rgba(215,38,61,.35)}
+  .summary-card.cash-card b{color:var(--danger)}
 
   .card:hover{transform:translateY(-3px);box-shadow:0 14px 26px rgba(15,23,42,.12)}
   .category-card{background:linear-gradient(160deg,var(--surface),#edf4ff);border:1px solid rgba(90,159,242,.18);min-height:90px;padding:12px}
@@ -177,6 +181,10 @@
     return userCodes[email] || email;
   }
 
+  const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+  const roundNumber = value => Math.round(Number(value) || 0);
+  const formatNumber = value => numberFormatter.format(roundNumber(value));
+
   /******** مصادقة ********/
   onAuthStateChanged(auth, async (user)=>{
     if(user){
@@ -261,10 +269,10 @@
       }
     });
 
-    $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
-    $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
-    $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
-    $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
+    $("#totalExpenses").textContent = formatNumber(totalExpenses)+" ر.س";
+    $("#totalIncome").textContent  = formatNumber(totalIncome)+" ر.س";
+    $("#cashBalance").textContent  = formatNumber(cash)+" ر.س";
+    $("#bankBalance").textContent  = formatNumber(bank)+" ر.س";
 
     const row = $("#categoryProgress");
     row.innerHTML = "";
@@ -280,14 +288,14 @@
       let remainingClass = "card-remaining";
       if(hasExpectation){
         if(remainingValue >= 0){
-          remainingText = `المتبقي <strong>${remainingValue.toFixed(2)} ر.س</strong>`;
+          remainingText = `المتبقي <strong>${formatNumber(remainingValue)} ر.س</strong>`;
         }else{
-          remainingText = `تم تجاوز المتوقع بـ <strong>${Math.abs(remainingValue).toFixed(2)} ر.س</strong>`;
+          remainingText = `تم تجاوز المتوقع بـ <strong>${formatNumber(Math.abs(remainingValue))} ر.س</strong>`;
           remainingClass += " exceeded";
         }
       }
 
-      const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + exp.toFixed(2) + ' ر.س</div>' : '';
+      const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + formatNumber(exp) + ' ر.س</div>' : '';
       const progressLabel = hasExpectation ? `${Math.round(rawPerc)}%` : "—";
       const card = document.createElement("div");
       card.className = "card category-card";
@@ -296,7 +304,7 @@
           <span class="card-title">${cat}</span>
         </div>
         ${subtitle}
-        <div class="card-amount">${sum.toFixed(2)} ر.س</div>
+        <div class="card-amount">${formatNumber(sum)} ر.س</div>
         <div class="card-remaining${remainingClass.includes("exceeded")?" exceeded":""}">${remainingText}</div>
         <div class="progress-shell" data-progress="${perc}" data-alert="${alertState}">
           <div class="progress-bar"></div>
@@ -325,7 +333,7 @@
         <td>${e.id?.slice?.(0,6)||e.id||""}</td>
         <td>${e.date||""}</td>
         <td>${translateType(e.type)}</td>
-        <td>${Number(e.amount||0).toFixed(2)}</td>
+        <td>${formatNumber(e.amount||0)}</td>
         <td>${e.category||""}</td>
         <td>${translateLocation(e.location)}</td>
         <td>${getUserCode(e.user)}</td>
@@ -417,7 +425,7 @@
     const doc = new jsPDF({orientation:"l", unit:"pt"});
     doc.text("حسابات عمران الخليج - السجلات", 40, 30);
     const rows = filteredEntries.map(e=>[
-      e.id, e.date, translateType(e.type), Number(e.amount||0).toFixed(2),
+      e.id, e.date, translateType(e.type), formatNumber(e.amount||0),
       e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
     ]);
     doc.autoTable({
@@ -431,7 +439,7 @@
     const data = [
       ["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"],
       ...filteredEntries.map(e=>[
-        e.id, e.date, translateType(e.type), Number(e.amount||0),
+        e.id, e.date, translateType(e.type), roundNumber(e.amount||0),
         e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
       ])
     ];
@@ -469,10 +477,10 @@
 
   <!-- بطاقات إجماليات -->
   <div class="grid">
+    <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
+    <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
     <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
     <div class="card summary-card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
-    <div class="card summary-card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
-    <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
   </div>
 
   <!-- بطاقات الفئات + القلم -->
