@@ -207,7 +207,7 @@
       currentUserEmail = user.email;
       $("#loginBox").style.display="none";
       $("#app").style.display="block";
-      $("#userEmail").textContent = currentUserEmail;
+      $("#userEmail").textContent = getUserCode(currentUserEmail);
       if(userArea) userArea.classList.add("visible");
       $("#entryDate").valueAsDate = new Date();
       populateCategories();
