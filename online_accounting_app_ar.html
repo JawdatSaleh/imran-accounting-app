@@ -164,7 +164,7 @@
     apiKey: "AIzaSyCKz2deoXAI_jBcclRuQS1bZCIROLZaYzs",
     authDomain: "omran-accounting.firebaseapp.com",
     projectId: "omran-accounting",
-    storageBucket: "omran-accounting.firebasestorage.app",
+    storageBucket: "omran-accounting.appspot.com", // ✅ تم تصحيحها
     messagingSenderId: "839133682089",
     appId: "1:839133682089:web:6b2f521e55dc5183848cb8",
     measurementId: "G-NE88J3J52F"
@@ -181,7 +181,6 @@
   let filteredEntries = [];
   let currentUserEmail = null;
 
-  // التوقعات (تُحفظ محليًا)
   const defaultExpected = {
     "مصاريف الداير": 100000,
     "مصاريف A1": 226000,
@@ -192,7 +191,6 @@
   };
   let expectedTotals = JSON.parse(localStorage.getItem("expectedTotals")||"null") || structuredClone(defaultExpected);
 
-  /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const tbody = $("#entriesBody");
@@ -223,8 +221,10 @@
     if(!email || !password){ alert("أدخل البريد وكلمة المرور"); return; }
     try{
       await signInWithEmailAndPassword(auth, email, password);
+      console.log("✅ تسجيل الدخول ناجح:", email);
     }catch(err){
-      alert("تعذّر تسجيل الدخول: " + (err.message||err));
+      console.error(err);
+      alert("تعذّر تسجيل الدخول: " + (err.message || err));
     }
   };
 
@@ -241,14 +241,18 @@
 
   /******** تحميل / حفظ / حذف ********/
   async function loadEntries(){
-    const qy = query(entriesRef, orderBy("createdAt","desc"));
-    const snap = await getDocs(qy).catch(async ()=> await getDocs(entriesRef));
-    const list = [];
-    snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
-    list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
-    entries = list;
-    filteredEntries = list;
-    renderEntries();
+    try {
+      const qy = query(entriesRef, orderBy("createdAt","desc"));
+      const snap = await getDocs(qy);
+      const list = [];
+      snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
+      list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
+      entries = list;
+      filteredEntries = list;
+      renderEntries();
+    } catch (err) {
+      console.error("خطأ في تحميل السجلات:", err);
+    }
   }
 
   async function saveEntry(entry){
@@ -266,15 +270,6 @@
   };
 
   /******** بطاقات / توقعات ********/
-  window.editExpected = (cat)=>{
-    const nv = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat]??0);
-    if(nv!==null && !isNaN(parseFloat(nv))){
-      expectedTotals[cat] = parseFloat(nv);
-      localStorage.setItem("expectedTotals", JSON.stringify(expectedTotals));
-      updateTotals();
-    }
-  };
-
 function updateTotals() {
   let totalExpenses = 0, totalIncome = 0, cash = 0, bank = 0;
   const catTotals = Object.fromEntries(categories.map(c => [c, 0]));
@@ -302,14 +297,12 @@ function updateTotals() {
   const row = $("#categoryProgress");
   row.innerHTML = "";
 
-  // دالة لتوليد لون حسب النسبة
   const getBarColor = (p) => {
     if (p < 40) return "var(--danger)";
     if (p < 70) return "#ff9800";
     return "var(--ok)";
   };
 
-  // دالة لإنشاء بطاقة واحدة
   const createCard = (title, current, expected) => {
     const remaining = Math.max(expected - current, 0);
     const perc = expected ? Math.min(current / expected * 100, 100) : 0;
@@ -328,11 +321,9 @@ function updateTotals() {
     row.appendChild(card);
   };
 
-  // بطاقة الإيرادات
+  // إجمالي الإيرادات + الفئات
   const incomeExpected = expectedTotals["إجمالي الإيرادات"] || 8000;
   createCard("إجمالي الإيرادات", totalIncome, incomeExpected);
-
-  // بطاقات الفئات
   for (const cat of categories) {
     const sum = catTotals[cat] || 0;
     const exp = expectedTotals[cat] || 0;
