@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>حسابات عمران الخليج</title>
+<title>حسابات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,13 @@
   *{box-sizing:border-box}
   body{font-family:"Cairo",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--surface-muted);margin:0;color:var(--text-main);line-height:1.5}
   header{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:18px 22px;border-bottom-left-radius:18px;border-bottom-right-radius:18px;box-shadow:0 18px 40px rgba(74,144,226,.2)}
-  header h1{margin:0;font-size:22px;font-weight:700}
+  header .header-content{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px}
+  header h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.6px}
+  .user-area{display:none;align-items:center;gap:12px;font-size:14px;font-weight:600}
+  .user-area.visible{display:flex}
+  .user-area .user-email{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.18);box-shadow:0 4px 12px rgba(12,36,64,.15)}
+  .user-area .logout-button{background:rgba(215,38,61,.92);padding-inline:18px;border-radius:999px}
+  .user-area .logout-button:hover{filter:brightness(.95)}
 
   .container{max-width:1200px;margin:24px auto;background:var(--surface);padding:22px;border-radius:20px;box-shadow:0 16px 35px rgba(15,23,42,.08)}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
@@ -170,6 +176,7 @@
   const filterFrom = $("#filterFrom");
   const filterTo = $("#filterTo");
   const clearFiltersBtn = $("#clearFilters");
+  const userArea = $("#userArea");
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
@@ -195,6 +202,7 @@
       $("#loginBox").style.display="none";
       $("#app").style.display="block";
       $("#userEmail").textContent = currentUserEmail;
+      if(userArea) userArea.classList.add("visible");
       $("#entryDate").valueAsDate = new Date();
       populateCategories();
       await loadEntries();
@@ -202,6 +210,8 @@
       currentUserEmail = null;
       $("#app").style.display="none";
       $("#loginBox").style.display="block";
+      $("#userEmail").textContent = "";
+      if(userArea) userArea.classList.remove("visible");
     }
   });
 
@@ -456,7 +466,13 @@
 <body>
 
 <header>
-  <h1>حسابات عمران الخليج</h1>
+  <div class="header-content">
+    <h1>حسابات</h1>
+    <div id="userArea" class="user-area">
+      <span id="userEmail" class="user-email"></span>
+      <button class="btn-danger logout-button" onclick="logout()">تسجيل الخروج</button>
+    </div>
+  </div>
 </header>
 
 <!-- شاشة دخول آمنة -->
@@ -473,11 +489,6 @@
 
 <!-- التطبيق -->
 <div id="app" class="container" style="display:none;">
-  <div class="toolbar">
-    <span class="muted">مرحبًا: <b id="userEmail"></b></span>
-    <button class="btn-danger" style="margin-right:auto" onclick="logout()">تسجيل الخروج</button>
-  </div>
-
   <!-- بطاقات إجماليات -->
   <div class="grid">
     <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 <span class="currency-symbol">﷼</span></b></div>
