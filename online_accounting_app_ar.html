@@ -154,7 +154,8 @@
   const entriesRef = collection(db, "entries");
 
   /******** الحالة العامة ********/
-  const categories = ["المسجد","A1","A2","المؤسسة","ديون","الداير"];
+  const baseCategories = ["المسجد","A1","A2","المؤسسة","ديون","الداير"];
+  let categories = [...baseCategories];
   let entries = [];
   let filteredEntries = [];
   let currentUserEmail = null;
@@ -325,6 +326,30 @@
   };
 
   /******** تحميل / حفظ / حذف ********/
+  function syncCategoriesFromEntries(){
+    const seen = new Set();
+    const merged = [];
+
+    const remember = (value)=>{
+      const trimmed = (value??"").trim();
+      if(!trimmed || seen.has(trimmed)) return;
+      seen.add(trimmed);
+      merged.push(trimmed);
+      if(expectedTotals[trimmed]==null){
+        expectedTotals[trimmed] = 0;
+      }
+    };
+
+    baseCategories.forEach(remember);
+    entries.forEach(e=> remember(e.category));
+
+    const currentEntryValue = $("#entryCategory")?.value || "";
+    const currentFilterValue = filterCategory?.value || "";
+
+    categories = merged;
+    populateCategories(currentEntryValue, currentFilterValue);
+  }
+
   async function loadEntries(){
     const qy = query(entriesRef, orderBy("createdAt","desc"));
     const snap = await getDocs(qy).catch(async ()=> await getDocs(entriesRef));
@@ -332,6 +357,7 @@
     snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
     list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
     entries = list;
+    syncCategoriesFromEntries();
     applyFilters();
   }
 
@@ -352,22 +378,34 @@
   /******** بطاقات / توقعات ********/
   function updateTotals(){
     let totalExpenses=0,totalIncome=0,cash=0,bank=0;
-    const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
+    const catTotals = {};
+    categories.forEach(c=>{ catTotals[c] = 0; });
 
     filteredEntries.forEach(e=>{
       const amount = safeAmount(e.amount);
       const normalizedType = normalizeType(e.type);
       const normalizedLocation = normalizeLocation(e.location);
+      const categoryKey = (e.category??"").trim();
+      if(categoryKey && catTotals[categoryKey]==null){
+        catTotals[categoryKey] = 0;
+        if(expectedTotals[categoryKey]==null){
+          expectedTotals[categoryKey] = 0;
+        }
+        if(!categories.includes(categoryKey)){
+          categories = [...categories, categoryKey];
+          populateCategories($("#entryCategory")?.value || "", filterCategory?.value || "");
+        }
+      }
       if(normalizedType==="expense"){
         totalExpenses += amount;
         if(normalizedLocation==="cash") cash -= amount;
         else if(normalizedLocation==="bank") bank -= amount;
-        const categoryKey = (e.category??"").trim();
-        if(catTotals[categoryKey]!=null) catTotals[categoryKey]+=amount;
+        if(catTotals[categoryKey]!=null) catTotals[categoryKey]-=amount;
       }else if(normalizedType==="income"){
         totalIncome += amount;
         if(normalizedLocation==="cash") cash += amount;
         else if(normalizedLocation==="bank") bank += amount;
+        if(catTotals[categoryKey]!=null) catTotals[categoryKey]+=amount;
       }else if(normalizedType==="transfer"){
         if(normalizedLocation==="cash"){ cash -= amount; bank += amount; }
         else if(normalizedLocation==="bank"){ bank -= amount; cash += amount; }
@@ -427,7 +465,8 @@
 
     const row = $("#categoryProgress");
     row.innerHTML = "";
-    for(const cat of categories){
+    const orderedCategories = categories.length ? categories : Object.keys(catTotals);
+    for(const cat of orderedCategories){
       const sum = catTotals[cat]||0;
       const exp = expectedTotals[cat]||0;
       const hasExpectation = exp > 0;
@@ -495,16 +534,23 @@
     updateTotals();
   }
 
-  function populateCategories(){
+  function populateCategories(entryValueOverride="", filterValueOverride=""){
     const sel = $("#entryCategory");
-    sel.innerHTML = "";
+    const entryValue = entryValueOverride || sel?.value || "";
+    const filterValue = filterValueOverride || filterCategory?.value || "";
+
+    if(sel){
+      sel.innerHTML = "";
+    }
     if(filterCategory){
       filterCategory.innerHTML = '<option value="">كل الفئات</option>';
     }
     categories.forEach(c=>{
-      const opt = document.createElement("option");
-      opt.value=c; opt.textContent=c;
-      sel.appendChild(opt);
+      if(sel){
+        const opt = document.createElement("option");
+        opt.value=c; opt.textContent=c;
+        sel.appendChild(opt);
+      }
       if(filterCategory){
         const filterOpt = document.createElement("option");
         filterOpt.value = c;
@@ -512,6 +558,13 @@
         filterCategory.appendChild(filterOpt);
       }
     });
+
+    if(sel && entryValue && categories.includes(entryValue)){
+      sel.value = entryValue;
+    }
+    if(filterCategory && filterValue && categories.includes(filterValue)){
+      filterCategory.value = filterValue;
+    }
   }
 
   /******** حفظ إدخال جديد ********/
