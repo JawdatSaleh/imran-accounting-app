@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>حسابات عمران الخليج</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
 <!-- ألوان وتصميم -->
 <style>
@@ -12,35 +15,60 @@
     --brand-dark:#4a90e2;     /* أغمق قليلًا للهوفر */
     --ok:#0a8f5a;             /* أخضر */
     --danger:#d7263d;         /* أحمر */
+    --surface:#ffffff;
+    --surface-muted:#f6f7fb;
+    --text-main:#1c1c28;
+    --text-muted:#6e7286;
   }
-  body{font-family:Arial,Tahoma,sans-serif;background:#f6f7fb;margin:0;color:#222}
-  header{background:var(--brand);color:#fff;padding:16px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
-  header h1{margin:0;font-size:20px}
+  *{box-sizing:border-box}
+  body{font-family:"Cairo",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--surface-muted);margin:0;color:var(--text-main);line-height:1.5}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:18px 22px;border-bottom-left-radius:18px;border-bottom-right-radius:18px;box-shadow:0 18px 40px rgba(74,144,226,.2)}
+  header h1{margin:0;font-size:22px;font-weight:700}
 
-  .container{max-width:1150px;margin:20px auto;background:#fff;padding:18px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.06)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-  .card{background:var(--brand);color:#fff;padding:14px;border-radius:12px;text-align:center;position:relative}
-  .card small{opacity:.9;display:block;margin-bottom:6px}
-  .card b{font-size:18px}
-  .edit-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:24px}
-  .edit-btn:hover{background:rgba(255,255,255,.4)}
+  .container{max-width:1200px;margin:24px auto;background:var(--surface);padding:22px;border-radius:20px;box-shadow:0 16px 35px rgba(15,23,42,.08)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .card{background:linear-gradient(135deg,var(--surface),#f3f7ff);color:var(--text-main);padding:14px;border-radius:16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 10px 20px rgba(15,23,42,.06);min-height:110px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;inset:auto -40px -60px auto;width:160px;height:160px;background:radial-gradient(circle at center,rgba(90,159,242,.25),transparent 70%);transform:rotate(-12deg)}
+  .card small{font-size:12px;color:var(--text-muted);font-weight:600}
+  .card b{font-size:20px;font-weight:700;color:var(--brand-dark)}
+  .summary-card{min-height:95px;padding:16px;background:linear-gradient(140deg,rgba(90,159,242,.15),rgba(10,143,90,.12));border:1px solid rgba(90,159,242,.22)}
+
+  .category-card{background:linear-gradient(160deg,var(--surface),#edf4ff);border:1px solid rgba(90,159,242,.18);min-height:110px}
+  .card-header{display:flex;justify-content:flex-start;align-items:center;gap:12px}
+  .card-title{font-size:15px;font-weight:700;color:var(--text-main)}
+  .card-subtitle{font-size:11px;color:var(--text-muted)}
+  .card-amount{font-size:22px;font-weight:700;color:var(--brand-dark)}
+  .card-remaining{font-size:13px;color:var(--text-muted);margin-top:auto}
+  .card-remaining strong{color:var(--ok)}
+  .card-remaining.exceeded{color:var(--danger)}
+  .card-remaining.exceeded strong{color:inherit}
+  .progress-shell{position:relative;background:#e9edf8;border-radius:999px;height:8px;overflow:hidden;margin-top:8px}
+  .progress-bar{position:absolute;inset:0;height:100%;background:linear-gradient(90deg,var(--ok),#13bd7d);width:0%;transition:width .8s cubic-bezier(.4,0,.2,1)}
+  .progress-shell[data-alert="true"] .progress-bar{background:linear-gradient(90deg,var(--danger),#ff5f7b)}
+  .progress-label{position:absolute;top:50%;inset-inline-start:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:var(--text-main);text-shadow:0 0 3px rgba(255,255,255,.8)}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-  input,select,button{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px}
-  button{background:var(--brand);color:#fff;border:none;cursor:pointer}
+  input,select,button{padding:10px 12px;border:1px solid #d6d9e5;border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--text-main);transition:border-color .25s,box-shadow .25s}
+  input:focus,select:focus,button:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(90,159,242,.2)}
+  button{background:var(--brand);color:#fff;border:none;cursor:pointer;font-weight:600}
   button:hover{background:var(--brand-dark)}
   .btn-okay{background:var(--ok)} .btn-okay:hover{filter:brightness(.95)}
   .btn-danger{background:var(--danger)} .btn-danger:hover{filter:brightness(.95)}
 
-  table{width:100%;border-collapse:collapse;margin-top:12px}
-  th,td{border-bottom:1px solid #eee;padding:10px;text-align:center}
-  thead th{background:var(--brand);color:#fff;position:sticky;top:0}
-  .muted{color:#666}
+  .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0 20px}
+  .toolbar input[type="search"]{min-width:260px;padding-inline-start:40px;background:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="%236e7286" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewBox="0 0 24 24"%3E%3Ccircle cx="11" cy="11" r="7"/%3E%3Cpath d="m20 20-2.65-2.65"/%3E%3C/svg%3E') no-repeat 12px center #fff;background-size:18px auto}
+  .filter-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;padding:14px;border-radius:16px;background:linear-gradient(135deg,rgba(90,159,242,.08),rgba(74,144,226,.04))}
+  .filter-field{display:flex;flex-direction:column;gap:6px}
+  .filter-field label{font-size:13px;font-weight:600;color:var(--text-muted)}
+  .clear-filter{background:rgba(215,38,61,.12);color:var(--danger)}
+  .clear-filter:hover{background:rgba(215,38,61,.18)}
+
+  table{width:100%;border-collapse:collapse;margin-top:12px;background:var(--surface);overflow:hidden;border-radius:16px}
+  thead th{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;position:sticky;top:0;padding:12px;font-weight:600}
+  th,td{border-bottom:1px solid #eef0f6;padding:12px;text-align:center;font-size:14px}
+  tbody tr:nth-child(even){background:#f8faff}
+  .muted{color:var(--text-muted)}
   .login{max-width:420px;margin:40px auto;text-align:center}
-  .progress-container{background:#eaeaea;border-radius:10px;height:10px;overflow:hidden;margin-top:6px}
-  .progress-bar{height:100%;background:var(--ok);width:0%;transition:width .35s}
-  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
-  .toolbar input[type="search"]{min-width:260px}
 </style>
 
 <!-- مكتبات التصدير -->
@@ -76,7 +104,7 @@
   let filteredEntries = [];
   let currentUserEmail = null;
 
-  // التوقعات (تُحفظ محليًا)
+  // التوقعات (تُستخدم للعرض فقط)
   const defaultExpected = {
     "مصاريف الداير": 100000,
     "مصاريف A1": 226000,
@@ -85,15 +113,30 @@
     "مصاريف المؤسسة": 25000,
     "ديون": 80000
   };
-  let expectedTotals = JSON.parse(localStorage.getItem("expectedTotals")||"null") || structuredClone(defaultExpected);
+  const expectedTotals = structuredClone(defaultExpected);
 
   /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const tbody = $("#entriesBody");
+  const searchInput = $("#searchBox");
+  const filterCategory = $("#filterCategory");
+  const filterType = $("#filterType");
+  const filterLocation = $("#filterLocation");
+  const filterFrom = $("#filterFrom");
+  const filterTo = $("#filterTo");
+  const clearFiltersBtn = $("#clearFilters");
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
+  const userCodes = {
+    "jawdat.saleh99@gmail.com": "A2",
+    "emad.lk9@gmail.com": "A1"
+  };
+  function getUserCode(email){
+    if(!email) return "";
+    return userCodes[email] || email;
+  }
 
   /******** مصادقة ********/
   onAuthStateChanged(auth, async (user)=>{
@@ -142,8 +185,7 @@
     snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
     list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
     entries = list;
-    filteredEntries = list;
-    renderEntries();
+    applyFilters();
   }
 
   async function saveEntry(entry){
@@ -161,15 +203,6 @@
   };
 
   /******** بطاقات / توقعات ********/
-  window.editExpected = (cat)=>{
-    const nv = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat]??0);
-    if(nv!==null && !isNaN(parseFloat(nv))){
-      expectedTotals[cat] = parseFloat(nv);
-      localStorage.setItem("expectedTotals", JSON.stringify(expectedTotals));
-      updateTotals();
-    }
-  };
-
   function updateTotals(){
     let totalExpenses=0,totalIncome=0,cash=0,bank=0;
     const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
@@ -199,18 +232,48 @@
     for(const cat of categories){
       const sum = catTotals[cat]||0;
       const exp = expectedTotals[cat]||0;
-      const perc = exp? Math.min(sum/exp*100,100):0;
-      const barColor = perc>=100? "var(--danger)" : "var(--ok)";
+      const hasExpectation = exp > 0;
+      const rawPerc = hasExpectation ? (sum/exp*100) : 0;
+      const perc = hasExpectation ? Math.min(Math.max(rawPerc,0),100) : 0;
+      const alertState = hasExpectation && rawPerc >= 100;
+      const remainingValue = exp - sum;
+      let remainingText = "لم يتم تحديد مبلغ متوقع";
+      let remainingClass = "card-remaining";
+      if(hasExpectation){
+        if(remainingValue >= 0){
+          remainingText = `المتبقي <strong>${remainingValue.toFixed(2)} ر.س</strong>`;
+        }else{
+          remainingText = `تم تجاوز المتوقع بـ <strong>${Math.abs(remainingValue).toFixed(2)} ر.س</strong>`;
+          remainingClass += " exceeded";
+        }
+      }
+
+      const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + exp.toFixed(2) + ' ر.س</div>' : '';
+      const progressLabel = hasExpectation ? `${Math.round(rawPerc)}%` : "—";
       const card = document.createElement("div");
-      card.className = "card";
+      card.className = "card category-card";
       card.innerHTML = `
-        <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
-        <small>${cat}</small>
-        <b>${sum.toFixed(2)} / ${exp.toFixed(2)} ر.س</b>
-        <div class="progress-container">
-          <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-        </div>`;
+        <div class="card-header">
+          <span class="card-title">${cat}</span>
+        </div>
+        ${subtitle}
+        <div class="card-amount">${sum.toFixed(2)} ر.س</div>
+        <div class="card-remaining${remainingClass.includes("exceeded")?" exceeded":""}">${remainingText}</div>
+        <div class="progress-shell" data-progress="${perc}" data-alert="${alertState}">
+          <div class="progress-bar"></div>
+          <span class="progress-label">${progressLabel}</span>
+        </div>
+      `;
       row.appendChild(card);
+
+      const shell = card.querySelector(".progress-shell");
+      const bar = shell.querySelector(".progress-bar");
+      bar.style.width = "0%";
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          bar.style.width = `${shell.dataset.progress}%`;
+        });
+      });
     }
   }
 
@@ -226,7 +289,7 @@
         <td>${Number(e.amount||0).toFixed(2)}</td>
         <td>${e.category||""}</td>
         <td>${translateLocation(e.location)}</td>
-        <td>${e.user||""}</td>
+        <td>${getUserCode(e.user)}</td>
         <td>${e.notes||""}</td>
         <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>`;
       tbody.appendChild(tr);
@@ -237,10 +300,19 @@
   function populateCategories(){
     const sel = $("#entryCategory");
     sel.innerHTML = "";
+    if(filterCategory){
+      filterCategory.innerHTML = '<option value="">كل الفئات</option>';
+    }
     categories.forEach(c=>{
       const opt = document.createElement("option");
       opt.value=c; opt.textContent=c;
       sel.appendChild(opt);
+      if(filterCategory){
+        const filterOpt = document.createElement("option");
+        filterOpt.value = c;
+        filterOpt.textContent = c;
+        filterCategory.appendChild(filterOpt);
+      }
     });
   }
 
@@ -263,15 +335,41 @@
     alert("✅ تم الحفظ");
   };
 
-  /******** البحث الفوري ********/
-  $("#searchBox").addEventListener("input", ()=>{
-    const q = $("#searchBox").value.trim().toLowerCase();
-    if(!q){ filteredEntries = [...entries]; renderEntries(); return; }
+  /******** التصفية والبحث ********/
+  function applyFilters(){
+    const q = (searchInput?.value || "").trim().toLowerCase();
+    const categoryValue = filterCategory?.value || "";
+    const typeValue = filterType?.value || "";
+    const locationValue = filterLocation?.value || "";
+    const fromValue = filterFrom?.value || "";
+    const toValue = filterTo?.value || "";
+
     filteredEntries = entries.filter(e=>{
-      return [e.id, e.date, e.type, e.amount, e.category, e.location, e.user, e.notes]
+      const matchesSearch = !q || [e.id, e.date, e.type, e.amount, e.category, e.location, e.user, e.notes]
         .map(x=> (x??"").toString().toLowerCase()).some(v=> v.includes(q));
+      if(!matchesSearch) return false;
+      if(categoryValue && e.category !== categoryValue) return false;
+      if(typeValue && e.type !== typeValue) return false;
+      if(locationValue && e.location !== locationValue) return false;
+      if(fromValue && (!e.date || e.date < fromValue)) return false;
+      if(toValue && (!e.date || e.date > toValue)) return false;
+      return true;
     });
+
     renderEntries();
+  }
+
+  searchInput?.addEventListener("input", ()=> applyFilters());
+  [filterCategory, filterType, filterLocation].forEach(el=> el?.addEventListener("change", applyFilters));
+  [filterFrom, filterTo].forEach(el=> el?.addEventListener("change", applyFilters));
+  clearFiltersBtn?.addEventListener("click", ()=>{
+    if(searchInput) searchInput.value = "";
+    if(filterCategory) filterCategory.value = "";
+    if(filterType) filterType.value = "";
+    if(filterLocation) filterLocation.value = "";
+    if(filterFrom) filterFrom.value = "";
+    if(filterTo) filterTo.value = "";
+    applyFilters();
   });
 
   /******** تصدير ********/
@@ -281,7 +379,7 @@
     doc.text("حسابات عمران الخليج - السجلات", 40, 30);
     const rows = filteredEntries.map(e=>[
       e.id, e.date, translateType(e.type), Number(e.amount||0).toFixed(2),
-      e.category, translateLocation(e.location), e.user||"", e.notes||""
+      e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
     ]);
     doc.autoTable({
       head:[["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"]],
@@ -295,7 +393,7 @@
       ["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"],
       ...filteredEntries.map(e=>[
         e.id, e.date, translateType(e.type), Number(e.amount||0),
-        e.category, translateLocation(e.location), e.user||"", e.notes||""
+        e.category, translateLocation(e.location), getUserCode(e.user), e.notes||""
       ])
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -333,12 +431,49 @@
     <button class="btn-danger" style="margin-right:auto" onclick="logout()">تسجيل الخروج</button>
   </div>
 
+  <div class="filter-panel">
+    <div class="filter-field">
+      <label for="filterCategory">الفئة</label>
+      <select id="filterCategory">
+        <option value="">كل الفئات</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filterType">نوع العملية</label>
+      <select id="filterType">
+        <option value="">جميع الأنواع</option>
+        <option value="expense">مصروف</option>
+        <option value="income">إيراد</option>
+        <option value="transfer">تحويل</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filterLocation">الموقع</label>
+      <select id="filterLocation">
+        <option value="">كل المواقع</option>
+        <option value="cash">الصندوق</option>
+        <option value="bank">البنك</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="filterFrom">من تاريخ</label>
+      <input type="date" id="filterFrom" />
+    </div>
+    <div class="filter-field">
+      <label for="filterTo">إلى تاريخ</label>
+      <input type="date" id="filterTo" />
+    </div>
+    <div class="filter-field" style="align-self:flex-end">
+      <button id="clearFilters" class="clear-filter">إعادة تعيين التصفية</button>
+    </div>
+  </div>
+
   <!-- بطاقات إجماليات -->
   <div class="grid">
-    <div class="card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
-    <div class="card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
-    <div class="card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
-    <div class="card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
+    <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
+    <div class="card summary-card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
+    <div class="card summary-card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
+    <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
   </div>
 
   <!-- بطاقات الفئات + القلم -->
