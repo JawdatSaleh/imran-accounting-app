@@ -149,18 +149,18 @@
   const entriesRef = collection(db, "entries");
 
   /******** الحالة العامة ********/
-  const categories = ["عهد مسجد المدينة","مصاريف A1","مصاريف A2","مصاريف المؤسسة","ديون","مصاريف الداير"];
+  const categories = ["المسجد","A1","A2","المؤسسة","ديون","الداير"];
   let entries = [];
   let filteredEntries = [];
   let currentUserEmail = null;
 
   // التوقعات (تُستخدم للعرض فقط)
   const defaultExpected = {
-    "مصاريف الداير": 100000,
-    "مصاريف A1": 226000,
-    "مصاريف A2": 151000,
-    "عهد مسجد المدينة": 400000,
-    "مصاريف المؤسسة": 25000,
+    "الداير": 100000,
+    "A1": 226000,
+    "A2": 151000,
+    "المسجد": 400000,
+    "المؤسسة": 25000,
     "ديون": 80000
   };
   const expectedTotals = structuredClone(defaultExpected);
