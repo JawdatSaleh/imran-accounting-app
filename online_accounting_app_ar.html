@@ -78,6 +78,57 @@
   padding:2px 6px;
   border-radius:6px;
 }
+.fancy-card {
+  background: linear-gradient(145deg, #5a9ff2, #4a90e2);
+  border-radius: 14px;
+  color: #fff;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 130px;
+  position: relative;
+}
+.fancy-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+.fancy-card .card-title {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+.fancy-card .card-main {
+  font-size: 26px;
+  font-weight: bold;
+}
+.fancy-card .card-main span {
+  font-size: 14px;
+  opacity: 0.9;
+}
+.fancy-card .card-sub {
+  font-size: 13px;
+  margin-top: 4px;
+  opacity: 0.95;
+}
+.fancy-card .progress-container {
+  background: rgba(255,255,255,0.25);
+  height: 8px;
+  border-radius: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.fancy-card .progress-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.6s ease-in-out;
+}
+.fancy-card .progress-info {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px}
@@ -224,56 +275,84 @@
     }
   };
 
-  function updateTotals(){
-    let totalExpenses=0,totalIncome=0,cash=0,bank=0;
-    const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
+function updateTotals() {
+  let totalExpenses = 0, totalIncome = 0, cash = 0, bank = 0;
+  const catTotals = Object.fromEntries(categories.map(c => [c, 0]));
 
-    filteredEntries.forEach(e=>{
-      const amount = Number(e.amount||0);
-      if(e.type==="expense"){
-        totalExpenses += amount;
-        if(e.location==="cash") cash -= amount; else bank -= amount;
-        if(catTotals[e.category]!=null) catTotals[e.category]+=amount;
-      }else if(e.type==="income"){
-        totalIncome += amount;
-        if(e.location==="cash") cash += amount; else bank += amount;
-      }else if(e.type==="transfer"){
-        if(e.location==="cash"){ cash -= amount; bank += amount; }
-        else { bank -= amount; cash += amount; }
-      }
-    });
+  filteredEntries.forEach(e => {
+    const amount = Number(e.amount || 0);
+    if (e.type === "expense") {
+      totalExpenses += amount;
+      if (e.location === "cash") cash -= amount; else bank -= amount;
+      if (catTotals[e.category] != null) catTotals[e.category] += amount;
+    } else if (e.type === "income") {
+      totalIncome += amount;
+      if (e.location === "cash") cash += amount; else bank += amount;
+    } else if (e.type === "transfer") {
+      if (e.location === "cash") { cash -= amount; bank += amount; }
+      else { bank -= amount; cash += amount; }
+    }
+  });
 
-    $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
-    $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
-    $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
-    $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
+  $("#totalExpenses").textContent = totalExpenses.toFixed(2) + " ر.س";
+  $("#totalIncome").textContent = totalIncome.toFixed(2) + " ر.س";
+  $("#cashBalance").textContent = cash.toFixed(2) + " ر.س";
+  $("#bankBalance").textContent = bank.toFixed(2) + " ر.س";
 
-    const row = $("#categoryProgress");
-    row.innerHTML = "";
-    // بطاقة الإيرادات بنفس تصميم الفئات
-const incomeExpected = expectedTotals["إجمالي الإيرادات"] || 8000;
-const remainingIncome = Math.max(incomeExpected - totalIncome, 0);
-const percIncome = incomeExpected ? Math.min(totalIncome / incomeExpected * 100, 100) : 0;
-const barColorIncome = percIncome >= 100 ? "var(--danger)" : "var(--ok)";
-const incomeCard = document.createElement("div");
-incomeCard.className = "card";
-incomeCard.innerHTML = `
-  <button class="edit-btn" title="تعديل الإيرادات المتوقعة" onclick="editExpected('إجمالي الإيرادات')">✏️</button>
-  <div class="big">${totalIncome.toFixed(2)} ر.س</div>
-  <div class="expected">المتبقي: ${remainingIncome.toFixed(2)} من ${incomeExpected.toFixed(2)} ر.س</div>
-  <div class="progress-container">
-    <div class="progress-bar" style="width:${percIncome}%;background:${barColorIncome}"></div>
-    <span>${(100 - percIncome).toFixed(1)}% متبقي</span>
-  </div>
-  <small>إجمالي الإيرادات</small>
-`;
-row.appendChild(incomeCard);
-   for(const cat of categories){
-  const sum = catTotals[cat]||0;
-  const exp = expectedTotals[cat]||0;
+  const row = $("#categoryProgress");
+  row.innerHTML = "";
+
+  // دالة لتوليد لون حسب النسبة
+  const getBarColor = (p) => {
+    if (p < 40) return "var(--danger)";
+    if (p < 70) return "#ff9800";
+    return "var(--ok)";
+  };
+
+  // دالة لإنشاء بطاقة واحدة
+  const createCard = (title, current, expected) => {
+    const remaining = Math.max(expected - current, 0);
+    const perc = expected ? Math.min(current / expected * 100, 100) : 0;
+    const barColor = getBarColor(perc);
+    const card = document.createElement("div");
+    card.className = "card fancy-card";
+    card.innerHTML = `
+      <div class="card-title">${title}</div>
+      <div class="card-main">${current.toFixed(2)} <span>ر.س</span></div>
+      <div class="card-sub">المتبقي: ${remaining.toFixed(2)} من ${expected.toFixed(2)} ر.س</div>
+      <div class="progress-container">
+        <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
+      </div>
+      <div class="progress-info">${perc.toFixed(1)}%</div>
+    `;
+    row.appendChild(card);
+  };
+
+  // بطاقة الإيرادات
+  const incomeExpected = expectedTotals["إجمالي الإيرادات"] || 8000;
+  createCard("إجمالي الإيرادات", totalIncome, incomeExpected);
+
+  // بطاقات الفئات
+  for (const cat of categories) {
+    const sum = catTotals[cat] || 0;
+    const exp = expectedTotals[cat] || 0;
+    createCard(cat, sum, exp);
+  }
+}
+
+// بطاقات المصروفات حسب الفئات
+for (const cat of categories) {
+  const sum = catTotals[cat] || 0;
+  const exp = expectedTotals[cat] || 0;
   const remaining = Math.max(exp - sum, 0);
   const perc = exp ? Math.min(sum / exp * 100, 100) : 0;
-  const barColor = perc >= 100 ? "var(--danger)" : "var(--ok)";
+
+  // تحديد اللون حسب النسبة المتبقية
+  let barColor;
+  if (perc < 40) barColor = "var(--danger)";
+  else if (perc < 70) barColor = "#ff9800";
+  else barColor = "var(--ok)";
+
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = `
@@ -288,6 +367,7 @@ row.appendChild(incomeCard);
   `;
   row.appendChild(card);
 }
+
   }
 
   /******** عرض الجدول ********/
