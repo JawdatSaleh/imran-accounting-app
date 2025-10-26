@@ -390,26 +390,4 @@
       card.innerHTML = `
         <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
         <small>${cat}</small>
-        <b>${sum.toFixed(2)} / ${exp.toFixed(2)} ر.س</b>
-        <div class="progress-container">
-          <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-        </div>`;
-      row.appendChild(card);
-    }
-  }
-
-  /******** عرض الجدول ********/
-  function renderEntries(){
-    tbody.innerHTML = "";
-    filteredEntries.forEach(e=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${e.id?.slice?.(0,6)||e.id||""}</td>
-        <td>${e.date||""}</td>
-        <td>${translateType(e.type)}</td>
-        <td>${Number(e.amount||0).toFixed(2)}</td>
-        <td>${e.category||""}</td>
-        <td>${translateLocation(e.location)}</td>
-        <td>${e.user||""}</td>
-        <td>${e.notes||""}</td>
-        <td><button class="btn-danger" onclick="deleteEntry('${
+        <b>${sum.toFixed
