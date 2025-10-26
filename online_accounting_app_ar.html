@@ -19,116 +19,11 @@
 
   .container{max-width:1150px;margin:20px auto;background:#fff;padding:18px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.06)}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-  .card{
-  background:var(--brand);
-  color:#fff;
-  padding:18px;
-  border-radius:14px;
-  text-align:center;
-  position:relative;
-  box-shadow:0 4px 10px rgba(0,0,0,.1);
-  transition:transform .2s;
-}
-.card:hover{transform:translateY(-3px);}
-.card .big{
-  font-size:28px;
-  font-weight:bold;
-  margin-bottom:5px;
-}
-.card .expected{
-  font-size:13px;
-  opacity:.9;
-  margin-top:4px;
-}
-.edit-btn{
-  position:absolute;
-  top:8px;
-  right:8px;
-  background:rgba(255,255,255,.25);
-  border:none;
-  color:#fff;
-  border-radius:50%;
-  width:26px;
-  height:26px;
-  cursor:pointer;
-  font-size:14px;
-  line-height:26px;
-}
-.progress-container{
-  background:#eaeaea;
-  border-radius:10px;
-  height:12px;
-  overflow:hidden;
-  margin-top:8px;
-  position:relative;
-}
-.progress-bar{
-  height:100%;
-  background:var(--ok);
-  width:0%;
-  transition:width .35s;
-}
-.progress-container span{
-  position:absolute;
-  top:-22px;
-  right:10px;
-  font-size:12px;
-  color:#fff;
-  background:rgba(0,0,0,.25);
-  padding:2px 6px;
-  border-radius:6px;
-}
-.fancy-card {
-  background: linear-gradient(145deg, #5a9ff2, #4a90e2);
-  border-radius: 14px;
-  color: #fff;
-  padding: 16px 12px;
-  text-align: center;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  min-height: 130px;
-  position: relative;
-}
-.fancy-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-.fancy-card .card-title {
-  font-size: 14px;
-  opacity: 0.9;
-  margin-bottom: 4px;
-}
-.fancy-card .card-main {
-  font-size: 26px;
-  font-weight: bold;
-}
-.fancy-card .card-main span {
-  font-size: 14px;
-  opacity: 0.9;
-}
-.fancy-card .card-sub {
-  font-size: 13px;
-  margin-top: 4px;
-  opacity: 0.95;
-}
-.fancy-card .progress-container {
-  background: rgba(255,255,255,0.25);
-  height: 8px;
-  border-radius: 10px;
-  margin-top: 8px;
-  overflow: hidden;
-  position: relative;
-}
-.fancy-card .progress-bar {
-  height: 100%;
-  border-radius: 10px;
-  transition: width 0.6s ease-in-out;
-}
-.fancy-card .progress-info {
-  font-size: 12px;
-  margin-top: 4px;
-  opacity: 0.9;
-}
+  .card{background:var(--brand);color:#fff;padding:14px;border-radius:12px;text-align:center;position:relative}
+  .card small{opacity:.9;display:block;margin-bottom:6px}
+  .card b{font-size:18px}
+  .edit-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:24px}
+  .edit-btn:hover{background:rgba(255,255,255,.4)}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px}
@@ -146,11 +41,64 @@
   .progress-bar{height:100%;background:var(--ok);width:0%;transition:width .35s}
   .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
   .toolbar input[type="search"]{min-width:260px}
+
+  /* 🎨 تصميم البطاقات الجديد */
+  .fancy-card {
+    background: linear-gradient(145deg, #6fb5ff, #4a90e2);
+    border-radius: 14px;
+    color: #fff;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 130px;
+    position: relative;
+  }
+  .fancy-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  .fancy-card .card-title {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 4px;
+  }
+  .fancy-card .card-main {
+    font-size: 26px;
+    font-weight: bold;
+  }
+  .fancy-card .card-main span {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+  .fancy-card .card-sub {
+    font-size: 13px;
+    margin-top: 4px;
+    opacity: 0.95;
+  }
+  .fancy-card .progress-container {
+    background: rgba(255,255,255,0.25);
+    height: 8px;
+    border-radius: 10px;
+    margin-top: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .fancy-card .progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.6s ease-in-out;
+  }
+  .fancy-card .progress-info {
+    font-size: 12px;
+    margin-top: 4px;
+    opacity: 0.9;
+  }
 </style>
 
 <!-- مكتبات التصدير -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/Ff4m3o9T1F1R7Jv6dFqz2n3nBvD6Y9FQqgq7nXk5I3V9wz2Qm+WcmykG6z2m0bZk2zYBqV0k3Tw2cQZc7mS4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" integrity="sha512-Lk1bY9L7l6g6q4gN6n9h8C1hX6V8qQF8HjQkzJ0JLu5GQnH9q3k9hK3b2vH1M0N4E8lqk+R2ZxU8b1rG7k0h+A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <!-- Firebase (App + Auth + Firestore) -->
@@ -164,7 +112,7 @@
     apiKey: "AIzaSyCKz2deoXAI_jBcclRuQS1bZCIROLZaYzs",
     authDomain: "omran-accounting.firebaseapp.com",
     projectId: "omran-accounting",
-    storageBucket: "omran-accounting.appspot.com", // ✅ تم تصحيحها
+    storageBucket: "omran-accounting.firebasestorage.app",
     messagingSenderId: "839133682089",
     appId: "1:839133682089:web:6b2f521e55dc5183848cb8",
     measurementId: "G-NE88J3J52F"
@@ -221,235 +169,70 @@
     if(!email || !password){ alert("أدخل البريد وكلمة المرور"); return; }
     try{
       await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ تسجيل الدخول ناجح:", email);
     }catch(err){
-      console.error(err);
-      alert("تعذّر تسجيل الدخول: " + (err.message || err));
+      alert("تعذّر تسجيل الدخول: " + (err.message||err));
     }
   };
 
   window.logout = ()=> signOut(auth);
-
-  window.resetPassword = async ()=>{
-    const email = $("#email").value.trim();
-    if(!email) return alert("أدخل بريدك في خانة البريد ثم اضغط استعادة كلمة المرور.");
-    try{
-      await sendPasswordResetEmail(auth, email);
-      alert("تم إرسال رابط تغيير كلمة المرور إلى بريدك.");
-    }catch(e){ alert("تعذّر الإرسال: "+(e.message||e)); }
-  };
+  window.resetPassword = async ()=>{ ... };
 
   /******** تحميل / حفظ / حذف ********/
-  async function loadEntries(){
-    try {
-      const qy = query(entriesRef, orderBy("createdAt","desc"));
-      const snap = await getDocs(qy);
-      const list = [];
-      snap.forEach(d=> list.push({ id:d.id, ...d.data() }));
-      list.sort((a,b)=> String(b.date||"").localeCompare(String(a.date||"")));
-      entries = list;
-      filteredEntries = list;
-      renderEntries();
-    } catch (err) {
-      console.error("خطأ في تحميل السجلات:", err);
-    }
-  }
+  async function loadEntries(){ ... }
 
-  async function saveEntry(entry){
-    await addDoc(entriesRef, { ...entry, createdAt: serverTimestamp() });
-  }
+  async function saveEntry(entry){ ... }
+  async function removeEntry(id){ ... }
 
-  async function removeEntry(id){
-    await deleteDoc(doc(db,"entries",id));
-  }
-
-  window.deleteEntry = async (id)=>{
-    if(!confirm("تأكيد حذف السجل؟")) return;
-    await removeEntry(id);
-    await loadEntries();
-  };
+  window.deleteEntry = async (id)=>{ ... };
 
   /******** بطاقات / توقعات ********/
-function updateTotals() {
-  let totalExpenses = 0, totalIncome = 0, cash = 0, bank = 0;
-  const catTotals = Object.fromEntries(categories.map(c => [c, 0]));
+  window.editExpected = (cat)=>{ ... };
 
-  filteredEntries.forEach(e => {
-    const amount = Number(e.amount || 0);
-    if (e.type === "expense") {
-      totalExpenses += amount;
-      if (e.location === "cash") cash -= amount; else bank -= amount;
-      if (catTotals[e.category] != null) catTotals[e.category] += amount;
-    } else if (e.type === "income") {
-      totalIncome += amount;
-      if (e.location === "cash") cash += amount; else bank += amount;
-    } else if (e.type === "transfer") {
-      if (e.location === "cash") { cash -= amount; bank += amount; }
-      else { bank -= amount; cash += amount; }
-    }
-  });
+  function updateTotals(){
+    let totalExpenses=0,totalIncome=0,cash=0,bank=0;
+    const catTotals = Object.fromEntries(categories.map(c=>[c,0]));
 
-  $("#totalExpenses").textContent = totalExpenses.toFixed(2) + " ر.س";
-  $("#totalIncome").textContent = totalIncome.toFixed(2) + " ر.س";
-  $("#cashBalance").textContent = cash.toFixed(2) + " ر.س";
-  $("#bankBalance").textContent = bank.toFixed(2) + " ر.س";
-
-  const row = $("#categoryProgress");
-  row.innerHTML = "";
-
-  const getBarColor = (p) => {
-    if (p < 40) return "var(--danger)";
-    if (p < 70) return "#ff9800";
-    return "var(--ok)";
-  };
-
-  const createCard = (title, current, expected) => {
-    const remaining = Math.max(expected - current, 0);
-    const perc = expected ? Math.min(current / expected * 100, 100) : 0;
-    const barColor = getBarColor(perc);
-    const card = document.createElement("div");
-    card.className = "card fancy-card";
-    card.innerHTML = `
-      <div class="card-title">${title}</div>
-      <div class="card-main">${current.toFixed(2)} <span>ر.س</span></div>
-      <div class="card-sub">المتبقي: ${remaining.toFixed(2)} من ${expected.toFixed(2)} ر.س</div>
-      <div class="progress-container">
-        <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-      </div>
-      <div class="progress-info">${perc.toFixed(1)}%</div>
-    `;
-    row.appendChild(card);
-  };
-
-  // إجمالي الإيرادات + الفئات
-  const incomeExpected = expectedTotals["إجمالي الإيرادات"] || 8000;
-  createCard("إجمالي الإيرادات", totalIncome, incomeExpected);
-  for (const cat of categories) {
-    const sum = catTotals[cat] || 0;
-    const exp = expectedTotals[cat] || 0;
-    createCard(cat, sum, exp);
-  }
-}
-
-// بطاقات المصروفات حسب الفئات
-for (const cat of categories) {
-  const sum = catTotals[cat] || 0;
-  const exp = expectedTotals[cat] || 0;
-  const remaining = Math.max(exp - sum, 0);
-  const perc = exp ? Math.min(sum / exp * 100, 100) : 0;
-
-  // تحديد اللون حسب النسبة المتبقية
-  let barColor;
-  if (perc < 40) barColor = "var(--danger)";
-  else if (perc < 70) barColor = "#ff9800";
-  else barColor = "var(--ok)";
-
-  const card = document.createElement("div");
-  card.className = "card";
-  card.innerHTML = `
-    <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
-    <div class="big">${sum.toFixed(2)} ر.س</div>
-    <div class="expected">المتبقي: ${remaining.toFixed(2)} من ${exp.toFixed(2)} ر.س</div>
-    <div class="progress-container">
-      <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-      <span>${(100 - perc).toFixed(1)}% متبقي</span>
-    </div>
-    <small>${cat}</small>
-  `;
-  row.appendChild(card);
-}
-
-  }
-
-  /******** عرض الجدول ********/
-  function renderEntries(){
-    tbody.innerHTML = "";
     filteredEntries.forEach(e=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${e.id?.slice?.(0,6)||e.id||""}</td>
-        <td>${e.date||""}</td>
-        <td>${translateType(e.type)}</td>
-        <td>${Number(e.amount||0).toFixed(2)}</td>
-        <td>${e.category||""}</td>
-        <td>${translateLocation(e.location)}</td>
-        <td>${e.user||""}</td>
-        <td>${e.notes||""}</td>
-        <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>`;
-      tbody.appendChild(tr);
+      const amount = Number(e.amount||0);
+      if(e.type==="expense"){
+        totalExpenses += amount;
+        if(e.location==="cash") cash -= amount; else bank -= amount;
+        if(catTotals[e.category]!=null) catTotals[e.category]+=amount;
+      }else if(e.type==="income"){
+        totalIncome += amount;
+        if(e.location==="cash") cash += amount; else bank += amount;
+      }else if(e.type==="transfer"){
+        if(e.location==="cash"){ cash -= amount; bank += amount; }
+        else { bank -= amount; cash += amount; }
+      }
     });
-    updateTotals();
-  }
 
-  function populateCategories(){
-    const sel = $("#entryCategory");
-    sel.innerHTML = "";
-    categories.forEach(c=>{
-      const opt = document.createElement("option");
-      opt.value=c; opt.textContent=c;
-      sel.appendChild(opt);
-    });
-  }
+    $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
+    $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
+    $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
+    $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
 
-  /******** حفظ إدخال جديد ********/
-  window.submitEntry = async ()=>{
-    if(!currentUserEmail){ alert("يرجى تسجيل الدخول أولًا"); return; }
-    const date = $("#entryDate").value;
-    const type = $("#entryType").value;
-    const amount = parseFloat($("#entryAmount").value);
-    const category = $("#entryCategory").value;
-    const location = $("#entryLocation").value;
-    const notes = $("#entryNotes").value;
-    if(!date || Number.isNaN(amount) || !category || !location){
-      alert("الرجاء إدخال جميع الحقول المطلوبة"); return;
+    const row = $("#categoryProgress");
+    row.innerHTML = "";
+    for(const cat of categories){
+      const sum = catTotals[cat]||0;
+      const exp = expectedTotals[cat]||0;
+      const perc = exp? Math.min(sum/exp*100,100):0;
+      const barColor = perc>=100? "var(--danger)" : "var(--ok)";
+      const card = document.createElement("div");
+      card.className = "fancy-card";
+      card.innerHTML = `
+        <div class="card-title">${cat}</div>
+        <div class="card-main">${sum.toFixed(2)} <span>ر.س</span></div>
+        <div class="card-sub">المتبقي: ${(exp - sum).toFixed(2)} من ${exp.toFixed(2)} ر.س</div>
+        <div class="progress-container">
+          <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
+        </div>
+        <div class="progress-info">${perc.toFixed(1)}%</div>
+      `;
+      row.appendChild(card);
     }
-    const entry = { date, type, amount, category, location, user: currentUserEmail, notes };
-    await saveEntry(entry);
-    $("#entryAmount").value=""; $("#entryNotes").value="";
-    await loadEntries();
-    alert("✅ تم الحفظ");
-  };
-
-  /******** البحث الفوري ********/
-  $("#searchBox").addEventListener("input", ()=>{
-    const q = $("#searchBox").value.trim().toLowerCase();
-    if(!q){ filteredEntries = [...entries]; renderEntries(); return; }
-    filteredEntries = entries.filter(e=>{
-      return [e.id, e.date, e.type, e.amount, e.category, e.location, e.user, e.notes]
-        .map(x=> (x??"").toString().toLowerCase()).some(v=> v.includes(q));
-    });
-    renderEntries();
-  });
-
-  /******** تصدير ********/
-  window.exportPDF = ()=>{
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({orientation:"l", unit:"pt"});
-    doc.text("حسابات عمران الخليج - السجلات", 40, 30);
-    const rows = filteredEntries.map(e=>[
-      e.id, e.date, translateType(e.type), Number(e.amount||0).toFixed(2),
-      e.category, translateLocation(e.location), e.user||"", e.notes||""
-    ]);
-    doc.autoTable({
-      head:[["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"]],
-      body:rows, startY:50
-    });
-    doc.save("omran-entries.pdf");
-  };
-
-  window.exportXLSX = ()=>{
-    const data = [
-      ["#","التاريخ","النوع","المبلغ","الفئة","الموقع","المستخدم","ملاحظات"],
-      ...filteredEntries.map(e=>[
-        e.id, e.date, translateType(e.type), Number(e.amount||0),
-        e.category, translateLocation(e.location), e.user||"", e.notes||""
-      ])
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "السجلات");
-    XLSX.writeFile(wb, "omran-entries.xlsx");
-  };
+  }
 </script>
 </head>
 <body>
@@ -460,67 +243,12 @@ for (const cat of categories) {
 
 <!-- شاشة دخول آمنة -->
 <div id="loginBox" class="container login">
-  <h3>تسجيل الدخول</h3>
-  <div class="row" style="justify-content:center">
-    <input id="email" type="email" placeholder="البريد الإلكتروني" />
-    <input id="password" type="password" placeholder="كلمة المرور" />
-    <button onclick="login()">دخول</button>
-    <button class="btn-okay" onclick="resetPassword()" title="إرسال رابط تغيير كلمة المرور">استعادة كلمة المرور</button>
-  </div>
-  <p class="muted">التسجيل مُغلق — فقط حسابات تتم إضافتها من Firebase Console تستطيع الدخول.</p>
+  ...
 </div>
 
 <!-- التطبيق -->
 <div id="app" class="container" style="display:none;">
-  <div class="toolbar">
-    <span class="muted">مرحبًا: <b id="userEmail"></b></span>
-    <input id="searchBox" type="search" placeholder="بحث في السجلات..." />
-    <button onclick="exportPDF()">تصدير PDF</button>
-    <button onclick="exportXLSX()">تصدير Excel</button>
-    <button class="btn-danger" style="margin-right:auto" onclick="logout()">تسجيل الخروج</button>
-  </div>
-
-  <!-- بطاقات إجماليات -->
-  <div class="grid">
-    <div class="card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 ر.س</b></div>
-    <div class="card"><small>إجمالي الإيرادات</small><b id="totalIncome">0 ر.س</b></div>
-    <div class="card"><small>رصيد الصندوق</small><b id="cashBalance">0 ر.س</b></div>
-    <div class="card"><small>رصيد البنك</small><b id="bankBalance">0 ر.س</b></div>
-  </div>
-
-  <!-- بطاقات الفئات + القلم -->
-  <div id="categoryProgress" class="grid" style="margin-top:10px;"></div>
-
-  <h3 style="margin-top:16px">إضافة عملية</h3>
-  <div class="row">
-    <input type="date" id="entryDate">
-    <select id="entryType">
-      <option value="expense">مصروف</option>
-      <option value="income">إيراد</option>
-      <option value="transfer">تحويل</option>
-    </select>
-    <input type="number" id="entryAmount" step="0.01" placeholder="المبلغ (ر.س)">
-    <select id="entryCategory"></select>
-    <select id="entryLocation">
-      <option value="cash">الصندوق</option>
-      <option value="bank">البنك</option>
-    </select>
-    <input type="text" id="entryNotes" placeholder="ملاحظات">
-    <button class="btn-okay" onclick="submitEntry()">إضافة</button>
-  </div>
-
-  <h3 style="margin-top:12px">السجلات</h3>
-  <div style="overflow:auto; max-height:60vh;">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الفئة</th>
-          <th>الموقع</th><th>المستخدم</th><th>ملاحظات</th><th>إجراء</th>
-        </tr>
-      </thead>
-      <tbody id="entriesBody"></tbody>
-    </table>
-  </div>
+  ...
 </div>
 </body>
 </html>
