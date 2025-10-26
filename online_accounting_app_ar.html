@@ -32,21 +32,12 @@
     box-shadow: var(--shadow);
     border-bottom-left-radius: var(--border-radius);
     border-bottom-right-radius: var(--border-radius);
-    position: relative;
   }
   header h1{
     margin: 0;
     font-size: 24px;
     font-weight: 600;
     text-align: center;
-  }
-  header::before{
-    content: "🏢"; /* أيقونة بسيطة للـ header */
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 28px;
   }
 
   .container{
@@ -71,13 +62,6 @@
     position: relative;
     transition: var(--transition);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-  .card::before{
-    content: attr(data-icon); /* أيقونة بسيطة لكل بطاقة */
-    font-size: 32px;
-    display: block;
-    margin-bottom: 8px;
   }
   .card:hover{
     transform: translateY(-4px); /* تأثير رفع عند الـ hover */
@@ -391,4 +375,13 @@
 
     $("#totalExpenses").textContent = totalExpenses.toFixed(2)+" ر.س";
     $("#totalIncome").textContent  = totalIncome.toFixed(2)+" ر.س";
-    $("#cashBalance").textContent  = cash.toFixed
+    $("#cashBalance").textContent  = cash.toFixed(2)+" ر.س";
+    $("#bankBalance").textContent  = bank.toFixed(2)+" ر.س";
+
+    const row = $("#categoryProgress");
+    row.innerHTML = "";
+    for(const cat of categories){
+      const sum = catTotals[cat]||0;
+      const exp = expectedTotals[cat]||0;
+      const perc = exp? Math.min(sum/exp*100,100):0;
+      const barColor = perc>=100? "var(--
