@@ -78,12 +78,12 @@
 
   // التوقعات (تُحفظ محليًا)
   const defaultExpected = {
-    "مصاريف الداير": 3000,
-    "مصاريف A1": 5000,
-    "مصاريف A2": 5000,
-    "عهد مسجد المدينة": 4000,
-    "مصاريف المؤسسة": 6000,
-    "ديون": 2000
+    "مصاريف الداير": 100000,
+    "مصاريف A1": 226000,
+    "مصاريف A2": 151000,
+    "عهد مسجد المدينة": 400000,
+    "مصاريف المؤسسة": 25000,
+    "ديون": 80000
   };
   let expectedTotals = JSON.parse(localStorage.getItem("expectedTotals")||"null") || structuredClone(defaultExpected);
 
@@ -162,7 +162,7 @@
 
   /******** بطاقات / توقعات ********/
   window.editExpected = (cat)=>{
-    const nv = prompt(أدخل المبلغ المتوقع الجديد لفئة "${cat}", expectedTotals[cat]??0);
+    const nv = prompt(`أدخل المبلغ المتوقع الجديد لفئة "${cat}"`, expectedTotals[cat]??0);
     if(nv!==null && !isNaN(parseFloat(nv))){
       expectedTotals[cat] = parseFloat(nv);
       localStorage.setItem("expectedTotals", JSON.stringify(expectedTotals));
@@ -203,13 +203,13 @@
       const barColor = perc>=100? "var(--danger)" : "var(--ok)";
       const card = document.createElement("div");
       card.className = "card";
-      card.innerHTML = 
+      card.innerHTML = `
         <button class="edit-btn" title="تعديل المبلغ المتوقع" onclick="editExpected('${cat}')">✏️</button>
         <small>${cat}</small>
         <b>${sum.toFixed(2)} / ${exp.toFixed(2)} ر.س</b>
         <div class="progress-container">
           <div class="progress-bar" style="width:${perc}%;background:${barColor}"></div>
-        </div>;
+        </div>`;
       row.appendChild(card);
     }
   }
@@ -219,7 +219,7 @@
     tbody.innerHTML = "";
     filteredEntries.forEach(e=>{
       const tr = document.createElement("tr");
-      tr.innerHTML = 
+      tr.innerHTML = `
         <td>${e.id?.slice?.(0,6)||e.id||""}</td>
         <td>${e.date||""}</td>
         <td>${translateType(e.type)}</td>
@@ -228,7 +228,7 @@
         <td>${translateLocation(e.location)}</td>
         <td>${e.user||""}</td>
         <td>${e.notes||""}</td>
-        <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>;
+        <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">حذف</button></td>`;
       tbody.appendChild(tr);
     });
     updateTotals();
