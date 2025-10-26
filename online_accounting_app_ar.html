@@ -184,8 +184,64 @@
   const clearFiltersBtn = $("#clearFilters");
   const userArea = $("#userArea");
 
-  function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
-  function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
+  const typeAliasesExact = {
+    "مصروف": "expense",
+    "مصروفات": "expense",
+    "إيراد": "income",
+    "ايراد": "income",
+    "تحويل": "transfer",
+    "نقل": "transfer"
+  };
+  const typeAliasesLower = {
+    "expense": "expense",
+    "expenses": "expense",
+    "income": "income",
+    "transfer": "transfer",
+    "transfers": "transfer"
+  };
+  const locationAliasesExact = {
+    "الصندوق": "cash",
+    "الخزينة": "cash",
+    "البنك": "bank"
+  };
+  const locationAliasesLower = {
+    "cash": "cash",
+    "bank": "bank"
+  };
+
+  function normalizeType(value){
+    if(value==null) return "";
+    const raw = String(value).trim();
+    if(!raw) return "";
+    if(typeAliasesExact[raw]) return typeAliasesExact[raw];
+    const lowered = raw.toLowerCase();
+    if(typeAliasesLower[lowered]) return typeAliasesLower[lowered];
+    return raw;
+  }
+
+  function normalizeLocation(value){
+    if(value==null) return "";
+    const raw = String(value).trim();
+    if(!raw) return "";
+    if(locationAliasesExact[raw]) return locationAliasesExact[raw];
+    const lowered = raw.toLowerCase();
+    if(locationAliasesLower[lowered]) return locationAliasesLower[lowered];
+    return raw;
+  }
+
+  function translateType(t){
+    const normalized = normalizeType(t);
+    return normalized==="expense"?"مصروف":
+           normalized==="income"?"إيراد":
+           normalized==="transfer"?"تحويل":
+           t||"";
+  }
+  function translateLocation(l){
+    const normalized = normalizeLocation(l);
+    return normalized==="cash"?"الصندوق":
+           normalized==="bank"?"البنك":
+           l||"";
+  }
   const userCodes = {
     "jawdat.saleh99@gmail.com": "A2",
     "emad.lk9@gmail.com": "A1"
@@ -275,16 +331,21 @@
 
     filteredEntries.forEach(e=>{
       const amount = Number(e.amount||0);
-      if(e.type==="expense"){
+      const normalizedType = normalizeType(e.type);
+      const normalizedLocation = normalizeLocation(e.location);
+      if(normalizedType==="expense"){
         totalExpenses += amount;
-        if(e.location==="cash") cash -= amount; else bank -= amount;
-        if(catTotals[e.category]!=null) catTotals[e.category]+=amount;
-      }else if(e.type==="income"){
+        if(normalizedLocation==="cash") cash -= amount;
+        else if(normalizedLocation==="bank") bank -= amount;
+        const categoryKey = (e.category??"").trim();
+        if(catTotals[categoryKey]!=null) catTotals[categoryKey]+=amount;
+      }else if(normalizedType==="income"){
         totalIncome += amount;
-        if(e.location==="cash") cash += amount; else bank += amount;
-      }else if(e.type==="transfer"){
-        if(e.location==="cash"){ cash -= amount; bank += amount; }
-        else { bank -= amount; cash += amount; }
+        if(normalizedLocation==="cash") cash += amount;
+        else if(normalizedLocation==="bank") bank += amount;
+      }else if(normalizedType==="transfer"){
+        if(normalizedLocation==="cash"){ cash -= amount; bank += amount; }
+        else if(normalizedLocation==="bank"){ bank -= amount; cash += amount; }
       }
     });
 
@@ -457,12 +518,19 @@
     const toValue = filterTo?.value || "";
 
     filteredEntries = entries.filter(e=>{
-      const matchesSearch = !q || [e.id, e.date, e.type, e.amount, e.category, e.location, e.user, e.notes]
+      const normalizedType = normalizeType(e.type);
+      const normalizedLocation = normalizeLocation(e.location);
+      const matchesSearch = !q || [
+          e.id, e.date, e.type, normalizedType, translateType(normalizedType),
+          e.amount, e.category, e.location, normalizedLocation,
+          translateLocation(normalizedLocation), e.user, e.notes
+        ]
         .map(x=> (x??"").toString().toLowerCase()).some(v=> v.includes(q));
       if(!matchesSearch) return false;
-      if(categoryValue && e.category !== categoryValue) return false;
-      if(typeValue && e.type !== typeValue) return false;
-      if(locationValue && e.location !== locationValue) return false;
+      const categoryKey = (e.category??"").trim();
+      if(categoryValue && categoryKey !== categoryValue) return false;
+      if(typeValue && normalizedType !== typeValue) return false;
+      if(locationValue && normalizedLocation !== locationValue) return false;
       if(fromValue && (!e.date || e.date < fromValue)) return false;
       if(toValue && (!e.date || e.date > toValue)) return false;
       return true;
