@@ -674,6 +674,10 @@
         <button onclick="exportXLSX()">تصدير Excel</button>
       </div>
       <div class="records-inline-filters">
+        <div class="filter-field button-field">
+          <label>&nbsp;</label>
+          <button id="clearFilters" class="clear-filter">إعادة تعيين التصفية</button>
+        </div>
         <div class="filter-field">
           <label for="filterCategory">الفئة</label>
           <select id="filterCategory">
@@ -704,10 +708,6 @@
         <div class="filter-field">
           <label for="filterTo">إلى تاريخ</label>
           <input type="date" id="filterTo" />
-        </div>
-        <div class="filter-field button-field">
-          <label>&nbsp;</label>
-          <button id="clearFilters" class="clear-filter">إعادة تعيين التصفية</button>
         </div>
       </div>
     </div>
