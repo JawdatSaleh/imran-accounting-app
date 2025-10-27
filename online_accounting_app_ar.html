@@ -103,7 +103,9 @@
   .records-inline-filters::-webkit-scrollbar{height:6px}
   .records-inline-filters::-webkit-scrollbar-thumb{background:rgba(90,159,242,.35);border-radius:999px}
   .records-inline-filters .filter-field{min-width:0}
+  .records-inline-filters .button-field{display:flex;align-items:center;justify-content:flex-end;justify-self:end;align-self:center}
   .records-inline-filters .button-field label{visibility:hidden;height:0;margin:0;padding:0}
+  .records-inline-filters .button-field button{white-space:nowrap}
   .entry-controls{margin-top:16px}
   .entry-inline{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:16px;background:linear-gradient(145deg,#fff,#f5f7ff);border:1px solid #e1e4ef;box-shadow:0 6px 18px rgba(15,23,42,.06)}
   .entry-inline .entry-action{display:flex;align-items:center}
@@ -674,6 +676,10 @@
         <button onclick="exportXLSX()">تصدير Excel</button>
       </div>
       <div class="records-inline-filters">
+        <div class="filter-field button-field">
+          <label>&nbsp;</label>
+          <button id="clearFilters" class="clear-filter">إعادة تعيين التصفية</button>
+        </div>
         <div class="filter-field">
           <label for="filterCategory">الفئة</label>
           <select id="filterCategory">
@@ -704,10 +710,6 @@
         <div class="filter-field">
           <label for="filterTo">إلى تاريخ</label>
           <input type="date" id="filterTo" />
-        </div>
-        <div class="filter-field button-field">
-          <label>&nbsp;</label>
-          <button id="clearFilters" class="clear-filter">إعادة تعيين التصفية</button>
         </div>
       </div>
     </div>
