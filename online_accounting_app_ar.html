@@ -72,8 +72,12 @@
   .modal-panel{position:relative;width:min(680px,100%);max-height:90vh;overflow-y:auto;background:var(--surface);border-radius:24px;padding:28px;box-shadow:0 30px 70px rgba(15,23,42,.35);border:1px solid rgba(90,159,242,.18)}
   .modal-panel::-webkit-scrollbar{width:8px}
   .modal-panel::-webkit-scrollbar-thumb{background:rgba(90,159,242,.35);border-radius:999px}
-  .modal-close{position:absolute;top:18px;inset-inline-start:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease}
+  .modal-close{position:absolute;top:18px;inset-inline-end:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease}
   .modal-close:hover{background:rgba(215,38,61,.2);color:#fff;transform:translateY(-1px)}
+  .modal-share{position:absolute;top:18px;inset-inline-start:18px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;height:36px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(90,159,242,.16),rgba(90,159,242,.28));color:var(--brand-dark);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,159,242,.18);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
+  .modal-share:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(90,159,242,.22);filter:brightness(1.05)}
+  .modal-share:disabled{opacity:.6;cursor:progress;transform:none;box-shadow:0 4px 12px rgba(90,159,242,.15)}
+  .modal-share .share-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(90,159,242,.2);color:var(--brand-dark);font-size:11px;font-weight:700}
   .modal-title{margin:0;font-size:20px;font-weight:700;color:var(--text-main)}
   .modal-subtitle{margin:6px 0 18px;font-size:13px;color:var(--text-muted)}
   .modal-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
@@ -110,7 +114,8 @@
   .stage-progress .progress-label{font-size:11px}
   @media (max-width:640px){
     .modal-panel{padding:24px 20px}
-    .modal-close{top:14px;inset-inline-start:14px}
+    .modal-close{top:14px;inset-inline-end:14px}
+    .modal-share{top:14px;inset-inline-start:14px}
     .stage-meta{align-items:flex-start;min-width:0}
     .stage-amounts{align-items:flex-start;text-align:right}
   }
@@ -261,6 +266,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/Ff4m3o9T1F1R7Jv6dFqz2n3nBvD6Y9FQqgq7nXk5I3V9wz2Qm+WcmykG6z2m0bZk2zYBqV0k3Tw2cQZc7mS4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" integrity="sha512-Lk1bY9L7l6g6q4gN6n9h8C1hX6V8qQF8HjQkzJ0JLu5GQnH9q3k9hK3b2vH1M0N4E8lqk+R2ZxU8b1rG7k0h+A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5u86XC0ZAY7WjVB7FtBVVn7a4MyuMxDN/68LUEDlTF/WZ0zR1ekR4WagM9YIvEBSGIWXhe/9QgW8qCV3R8A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <!-- Firebase (App + Auth + Firestore) -->
 <script type="module">
@@ -364,6 +370,11 @@
   const categoryModalSubtitle = $("#categoryModalSubtitle");
   const categoryModalBody = $("#categoryModalBody");
   const categoryModalFooter = $("#categoryModalFooter");
+
+  if(shareCategoryModalBtn){
+    shareCategoryModalBtn.dataset.originalText = shareCategoryModalBtn.textContent.trim();
+    shareCategoryModalBtn.dataset.originalHtml = shareCategoryModalBtn.innerHTML;
+  }
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
@@ -469,6 +480,13 @@
     let totalIncome = 0;
     let totalTransfers = 0;
 
+    if(shareCategoryModalBtn){
+      const hasEntries = categoryEntries.length > 0;
+      shareCategoryModalBtn.disabled = !hasEntries;
+      shareCategoryModalBtn.setAttribute("aria-disabled", hasEntries ? "false" : "true");
+      shareCategoryModalBtn.title = hasEntries ? "" : "لا توجد سجلات لمشاركتها حالياً";
+    }
+
     if(categoryEntries.length === 0){
       const emptyRow = document.createElement("tr");
       emptyRow.innerHTML = '<td colspan="7" style="text-align:center;color:var(--text-muted);">لا توجد سجلات لهذه الفئة حتى الآن.</td>';
@@ -544,6 +562,75 @@
     activeCategoryTrigger = null;
     activeCategoryName = null;
     categoryModal.removeAttribute("data-category");
+    if(shareCategoryModalBtn){
+      shareCategoryModalBtn.disabled = false;
+      shareCategoryModalBtn.setAttribute("aria-disabled", "false");
+      shareCategoryModalBtn.innerHTML = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
+    }
+  }
+
+  async function shareCategoryRecordsAsImage(){
+    if(!categoryModal?.classList.contains("active")) return;
+    if(!shareCategoryModalBtn) return;
+
+    const tableElement = categoryModal.querySelector(".records-table");
+    if(!tableElement){
+      alert("لا توجد سجلات لمشاركتها حالياً.");
+      return;
+    }
+
+    if(typeof html2canvas !== "function"){
+      alert("خدمة إنشاء الصورة غير متوفرة في الوقت الحالي.");
+      return;
+    }
+
+    const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
+    shareCategoryModalBtn.disabled = true;
+    shareCategoryModalBtn.setAttribute("aria-disabled", "true");
+    shareCategoryModalBtn.textContent = "جاري التحضير...";
+
+    try{
+      const desiredWidth = Math.max(tableElement.scrollWidth, 1024);
+      const canvas = await html2canvas(tableElement, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        width: desiredWidth,
+        windowWidth: desiredWidth,
+        useCORS: true
+      });
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png", 0.95));
+      if(!blob) throw new Error("NO_BLOB");
+
+      const safeName = (activeCategoryName || "category").replace(/\s+/g, "-");
+      const fileName = `records-${safeName}.png`;
+      const file = typeof File === "function" ? new File([blob], fileName, { type: "image/png" }) : null;
+
+      if(file && navigator.canShare && navigator.canShare({ files: [file] })){
+        await navigator.share({
+          files: [file],
+          title: `سجلات ${activeCategoryName || ""}`.trim(),
+          text: `صورة من جدول سجلات ${activeCategoryName || ""} لمشاركتها عبر واتس اب.`.trim()
+        });
+      }else{
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+        alert("تم تنزيل الصورة. شاركها عبر واتس اب من معرض الصور لديك.");
+      }
+    }catch(error){
+      console.error("shareCategoryRecordsAsImage", error);
+      alert("تعذر تجهيز صورة السجلات، الرجاء المحاولة مرة أخرى.");
+    }finally{
+      shareCategoryModalBtn.disabled = false;
+      shareCategoryModalBtn.setAttribute("aria-disabled", "false");
+      shareCategoryModalBtn.innerHTML = originalHtml;
+    }
   }
 
   function openRevenueModal(){
@@ -580,6 +667,7 @@
     }
   });
   closeCategoryModalBtn?.addEventListener("click", closeCategoryModal);
+  shareCategoryModalBtn?.addEventListener("click", shareCategoryRecordsAsImage);
   categoryModal?.addEventListener("click", evt=>{
     if(evt.target === categoryModal){
       closeCategoryModal();
@@ -1049,6 +1137,7 @@
 
   <div id="categoryModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="categoryModalTitle" aria-describedby="categoryModalSubtitle">
     <div class="modal-panel" role="document" tabindex="-1">
+      <button type="button" class="modal-share" id="shareCategoryModal" aria-label="مشاركة جدول السجلات كصورة"><span class="share-icon">⇪</span><span>مشاركة كصورة</span></button>
       <button type="button" class="modal-close" id="closeCategoryModal" aria-label="إغلاق">&times;</button>
       <h2 class="modal-title" id="categoryModalTitle">سجلات الفئة</h2>
       <p class="modal-subtitle" id="categoryModalSubtitle">عرض مفصل لسجلات الفئة المختارة.</p>
