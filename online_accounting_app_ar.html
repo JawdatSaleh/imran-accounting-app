@@ -45,6 +45,8 @@
 
   .card:hover{transform:translateY(-3px);box-shadow:0 14px 26px rgba(15,23,42,.12)}
   .category-card{background:linear-gradient(160deg,var(--surface),#edf4ff);border:1px solid rgba(90,159,242,.18);min-height:90px;padding:12px}
+  .category-card.clickable{cursor:pointer;border-color:rgba(90,159,242,.26)}
+  .category-card.clickable:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(90,159,242,.28)}
   .card-header{display:flex;justify-content:flex-start;align-items:center;gap:10px}
   .card-title{font-size:13px;font-weight:700;color:var(--text-main)}
   .card-subtitle{font-size:10px;color:var(--text-muted)}
@@ -79,6 +81,9 @@
   .modal-summary .summary-label{font-size:12px;color:var(--text-muted);font-weight:600}
   .modal-summary .summary-value{font-size:16px;font-weight:700;color:var(--brand-dark)}
   .modal-summary .summary-value strong{color:var(--ok)}
+  .modal-table-wrapper{margin-top:12px;border-radius:18px;overflow:auto;box-shadow:inset 0 0 0 1px rgba(90,159,242,.12)}
+  .modal-table-wrapper .records-table{min-width:620px;border-radius:18px;margin:0}
+  .modal-table-wrapper .records-table thead th{top:0}
   .stages-list{display:flex;flex-direction:column;gap:14px}
   .stage-card{padding:18px 20px;border-radius:20px;border:1px solid rgba(90,159,242,.16);background:linear-gradient(135deg,#f9fbff,#f1f5ff);box-shadow:0 12px 24px rgba(15,23,42,.06);display:flex;flex-direction:column;gap:14px;transition:transform .25s ease,box-shadow .25s ease}
   .stage-card.stage-completed{background:linear-gradient(135deg,rgba(10,143,90,.16),rgba(19,189,125,.18));border-color:rgba(10,143,90,.35)}
@@ -329,6 +334,8 @@
     }
   ];
   let currentRevenueTotal = 0;
+  let activeCategoryTrigger = null;
+  let activeCategoryName = null;
 
   /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
@@ -351,6 +358,12 @@
   const revenueModalCollectedValue = $("#revenueModalCollectedValue");
   const revenueModalRemainingValue = $("#revenueModalRemainingValue");
   const revenueModalProgressValue = $("#revenueModalProgressValue");
+  const categoryModal = $("#categoryModal");
+  const closeCategoryModalBtn = $("#closeCategoryModal");
+  const categoryModalTitle = $("#categoryModalTitle");
+  const categoryModalSubtitle = $("#categoryModalSubtitle");
+  const categoryModalBody = $("#categoryModalBody");
+  const categoryModalFooter = $("#categoryModalFooter");
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
@@ -439,6 +452,100 @@
     });
   }
 
+  function renderCategoryModal(category){
+    const targetCategory = category ?? activeCategoryName;
+    if(!targetCategory) return;
+    if(categoryModalTitle){
+      categoryModalTitle.textContent = `سجلات فئة ${targetCategory}`;
+    }
+    if(categoryModalSubtitle){
+      categoryModalSubtitle.textContent = "عرض جميع السجلات المسجلة لهذه الفئة.";
+    }
+    if(!categoryModalBody || !categoryModalFooter) return;
+    categoryModalBody.innerHTML = "";
+
+    const categoryEntries = entries.filter(e=> e.category === targetCategory);
+    let totalExpenses = 0;
+    let totalIncome = 0;
+    let totalTransfers = 0;
+
+    if(categoryEntries.length === 0){
+      const emptyRow = document.createElement("tr");
+      emptyRow.innerHTML = '<td colspan="7" style="text-align:center;color:var(--text-muted);">لا توجد سجلات لهذه الفئة حتى الآن.</td>';
+      categoryModalBody.appendChild(emptyRow);
+    }else{
+      categoryEntries.forEach(entry=>{
+        const amount = Number(entry.amount||0);
+        if(entry.type === "expense") totalExpenses += amount;
+        else if(entry.type === "income") totalIncome += amount;
+        else if(entry.type === "transfer") totalTransfers += amount;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${entry.id?.slice?.(0,6) || entry.id || ""}</td>
+          <td>${entry.date || ""}</td>
+          <td>${translateType(entry.type)}</td>
+          <td>${formatNumber(entry.amount || 0)}</td>
+          <td>${translateLocation(entry.location)}</td>
+          <td>${getUserCode(entry.user)}</td>
+          <td>${entry.notes || ""}</td>
+        `;
+        categoryModalBody.appendChild(tr);
+      });
+    }
+
+    const netFlow = totalIncome - totalExpenses;
+    const netClass = netFlow > 0 ? "positive" : netFlow < 0 ? "negative" : "";
+    categoryModalFooter.innerHTML = `
+      <td colspan="2" class="footer-label">
+        <span>عدد السجلات</span>
+        <strong>${formatNumber(categoryEntries.length)}</strong>
+      </td>
+      <td class="footer-amount expense">
+        <span>إجمالي المصروفات</span>
+        <strong>${formatCurrency(totalExpenses)}</strong>
+      </td>
+      <td class="footer-amount income">
+        <span>إجمالي الإيرادات</span>
+        <strong>${formatCurrency(totalIncome)}</strong>
+      </td>
+      <td class="footer-amount transfer">
+        <span>التحويلات</span>
+        <strong>${formatCurrency(totalTransfers)}</strong>
+      </td>
+      <td colspan="2" class="footer-balance">
+        <span>صافي الفئة</span>
+        <strong class="${netClass}">${formatCurrency(netFlow)}</strong>
+      </td>
+    `;
+  }
+
+  function openCategoryModal(category, triggerEl){
+    if(!categoryModal) return;
+    activeCategoryTrigger = triggerEl || null;
+    activeCategoryName = category;
+    categoryModal.dataset.category = category;
+    renderCategoryModal(category);
+    categoryModal.classList.add("active");
+    categoryModal.setAttribute("aria-hidden","false");
+    document.body.style.overflow = "hidden";
+    const panel = categoryModal.querySelector(".modal-panel");
+    panel?.focus();
+  }
+
+  function closeCategoryModal(){
+    if(!categoryModal) return;
+    categoryModal.classList.remove("active");
+    categoryModal.setAttribute("aria-hidden","true");
+    document.body.style.overflow = "";
+    if(activeCategoryTrigger){
+      activeCategoryTrigger.focus();
+    }
+    activeCategoryTrigger = null;
+    activeCategoryName = null;
+    categoryModal.removeAttribute("data-category");
+  }
+
   function openRevenueModal(){
     if(!revenueModal) return;
     updateRevenueBreakdown(currentRevenueTotal);
@@ -472,9 +579,21 @@
       closeRevenueModal();
     }
   });
+  closeCategoryModalBtn?.addEventListener("click", closeCategoryModal);
+  categoryModal?.addEventListener("click", evt=>{
+    if(evt.target === categoryModal){
+      closeCategoryModal();
+    }
+  });
   document.addEventListener("keydown", evt=>{
-    if(evt.key === "Escape" && revenueModal?.classList.contains("active")){
-      closeRevenueModal();
+    if(evt.key === "Escape"){
+      if(revenueModal?.classList.contains("active")){
+        closeRevenueModal();
+        return;
+      }
+      if(categoryModal?.classList.contains("active")){
+        closeCategoryModal();
+      }
     }
   });
 
@@ -650,7 +769,7 @@
         const subtitle = hasExpectation ? '<div class="card-subtitle">من أصل ' + formatCurrency(exp) + '</div>' : '';
         const progressLabel = hasExpectation ? `${Math.round(rawPerc)}%` : "—";
         const card = document.createElement("div");
-        card.className = "card category-card";
+        card.className = "card category-card clickable";
         card.innerHTML = `
           <div class="card-header">
             <span class="card-title">${cat}</span>
@@ -663,6 +782,21 @@
             <span class="progress-label">${progressLabel}</span>
           </div>
         `;
+        card.dataset.category = cat;
+        card.setAttribute("role","button");
+        card.setAttribute("tabindex","0");
+        card.setAttribute("aria-haspopup","dialog");
+        card.setAttribute("aria-controls","categoryModal");
+        card.addEventListener("click", ()=> openCategoryModal(cat, card));
+        card.addEventListener("keydown", evt=>{
+          if(evt.key === "Enter" || evt.key === " "){
+            evt.preventDefault();
+            openCategoryModal(cat, card);
+          }
+        });
+        if(activeCategoryName === cat && categoryModal?.classList.contains("active")){
+          activeCategoryTrigger = card;
+        }
         row.appendChild(card);
 
         const shell = card.querySelector(".progress-shell");
@@ -673,6 +807,9 @@
             bar.style.width = `${shell.dataset.progress}%`;
           });
         });
+      }
+      if(categoryModal?.classList.contains("active") && activeCategoryName === cat){
+        renderCategoryModal(activeCategoryName);
       }
     }
   }
@@ -907,6 +1044,33 @@
         </div>
       </div>
       <div class="stages-list" id="revenueStagesList"></div>
+    </div>
+  </div>
+
+  <div id="categoryModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="categoryModalTitle" aria-describedby="categoryModalSubtitle">
+    <div class="modal-panel" role="document" tabindex="-1">
+      <button type="button" class="modal-close" id="closeCategoryModal" aria-label="إغلاق">&times;</button>
+      <h2 class="modal-title" id="categoryModalTitle">سجلات الفئة</h2>
+      <p class="modal-subtitle" id="categoryModalSubtitle">عرض مفصل لسجلات الفئة المختارة.</p>
+      <div class="modal-table-wrapper">
+        <table class="records-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>المبلغ</th>
+              <th>الموقع</th>
+              <th>المستخدم</th>
+              <th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="categoryModalBody"></tbody>
+          <tfoot>
+            <tr id="categoryModalFooter"></tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   </div>
 
