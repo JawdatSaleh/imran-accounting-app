@@ -580,6 +580,46 @@
     }
   }
 
+  async function ensureHtml2Canvas(){
+    if(typeof window === "undefined") return null;
+    if(typeof window.html2canvas === "function") return window.html2canvas;
+
+    let loader = document.querySelector('script[data-html2canvas-loader="true"]');
+    if(!loader){
+      loader = document.createElement("script");
+      loader.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      loader.async = true;
+      loader.crossOrigin = "anonymous";
+      loader.referrerPolicy = "no-referrer";
+      loader.dataset.html2canvasLoader = "true";
+      const integrity = "sha512-BNa5u86XC0ZAY7WjVB7FtBVVn7a4MyuMxDN/68LUEDlTF/WZ0zR1ekR4WagM9YIvEBSGIWXhe/9QgW8qCV3R8A==";
+      loader.integrity = integrity;
+      document.head.appendChild(loader);
+    }
+
+    await new Promise((resolve, reject)=>{
+      if(loader.dataset.loaded){
+        resolve();
+        return;
+      }
+      const handleLoad = ()=>{
+        loader.removeEventListener("load", handleLoad);
+        loader.removeEventListener("error", handleError);
+        loader.dataset.loaded = "true";
+        resolve();
+      };
+      const handleError = ()=>{
+        loader.removeEventListener("load", handleLoad);
+        loader.removeEventListener("error", handleError);
+        reject(new Error("HTML2CANVAS_LOAD_ERROR"));
+      };
+      loader.addEventListener("load", handleLoad);
+      loader.addEventListener("error", handleError);
+    }).catch(()=>{});
+
+    return typeof window.html2canvas === "function" ? window.html2canvas : null;
+  }
+
   async function shareCategoryRecordsAsImage(){
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
@@ -590,7 +630,8 @@
       return;
     }
 
-    if(typeof html2canvas !== "function"){
+    const html2canvasLib = await ensureHtml2Canvas();
+    if(typeof html2canvasLib !== "function"){
       alert("خدمة إنشاء الصورة غير متوفرة في الوقت الحالي.");
       return;
     }
@@ -602,7 +643,7 @@
 
     try{
       const desiredWidth = Math.max(tableElement.scrollWidth, 1024);
-      const canvas = await html2canvas(tableElement, {
+      const canvas = await html2canvasLib(tableElement, {
         scale: 2,
         backgroundColor: "#ffffff",
         width: desiredWidth,
