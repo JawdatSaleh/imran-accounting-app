@@ -305,7 +305,17 @@
     "المؤسسة": 25000,
     "ديون": 80000
   };
-  const expectedTotals = structuredClone(defaultExpected);
+  const cloneData = (value)=>{
+    if(typeof structuredClone === "function"){
+      return structuredClone(value);
+    }
+    try{
+      return JSON.parse(JSON.stringify(value));
+    }catch(_){
+      return value;
+    }
+  };
+  const expectedTotals = cloneData(defaultExpected);
   const revenueTarget = 983625;
   const revenueStages = [
     {
