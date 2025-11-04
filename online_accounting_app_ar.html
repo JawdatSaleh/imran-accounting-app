@@ -53,7 +53,8 @@
   .card-remaining strong{color:var(--ok)}
   .card-remaining.exceeded{color:var(--danger)}
   .card-remaining.exceeded strong{color:inherit}
-  .revenue-card{min-height:110px}
+  .revenue-card{min-height:110px;cursor:pointer;border:1px solid rgba(90,159,242,.14)}
+  .revenue-card:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(90,159,242,.3)}
   .revenue-card .card-header{justify-content:space-between}
   .revenue-card .card-title{font-size:14px}
   .revenue-card .card-subtitle{font-size:11px}
@@ -63,6 +64,51 @@
   .progress-shell[data-alert="true"] .progress-bar{background:linear-gradient(90deg,var(--danger),#ff5f7b)}
   .progress-label{position:absolute;top:50%;inset-inline-start:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:var(--text-main);text-shadow:0 0 3px rgba(255,255,255,.8)}
   .currency-symbol{font-size:0.75em;opacity:0.85;margin-inline-start:4px;display:inline-block;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(16,25,44,.58);display:flex;align-items:center;justify-content:center;padding:24px;z-index:2000;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .modal-backdrop.active{opacity:1;pointer-events:all}
+  .modal-panel{position:relative;width:min(680px,100%);max-height:90vh;overflow-y:auto;background:var(--surface);border-radius:24px;padding:28px;box-shadow:0 30px 70px rgba(15,23,42,.35);border:1px solid rgba(90,159,242,.18)}
+  .modal-panel::-webkit-scrollbar{width:8px}
+  .modal-panel::-webkit-scrollbar-thumb{background:rgba(90,159,242,.35);border-radius:999px}
+  .modal-close{position:absolute;top:18px;inset-inline-start:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease}
+  .modal-close:hover{background:rgba(215,38,61,.2);color:#fff;transform:translateY(-1px)}
+  .modal-title{margin:0;font-size:20px;font-weight:700;color:var(--text-main)}
+  .modal-subtitle{margin:6px 0 18px;font-size:13px;color:var(--text-muted)}
+  .modal-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+  .modal-summary .summary-item{background:linear-gradient(140deg,rgba(90,159,242,.12),rgba(19,189,125,.08));border:1px solid rgba(90,159,242,.16);border-radius:18px;padding:12px 16px;display:flex;flex-direction:column;gap:4px}
+  .modal-summary .summary-label{font-size:12px;color:var(--text-muted);font-weight:600}
+  .modal-summary .summary-value{font-size:16px;font-weight:700;color:var(--brand-dark)}
+  .modal-summary .summary-value strong{color:var(--ok)}
+  .stages-list{display:flex;flex-direction:column;gap:14px}
+  .stage-card{padding:18px 20px;border-radius:20px;border:1px solid rgba(90,159,242,.16);background:linear-gradient(135deg,#f9fbff,#f1f5ff);box-shadow:0 12px 24px rgba(15,23,42,.06);display:flex;flex-direction:column;gap:14px;transition:transform .25s ease,box-shadow .25s ease}
+  .stage-card.stage-completed{background:linear-gradient(135deg,rgba(10,143,90,.16),rgba(19,189,125,.18));border-color:rgba(10,143,90,.35)}
+  .stage-card.stage-in-progress{background:linear-gradient(135deg,rgba(90,159,242,.12),rgba(90,159,242,.08));border-color:rgba(90,159,242,.26)}
+  .stage-card.stage-completed .progress-shell{background:rgba(233,247,240,.8)}
+  .stage-card.stage-in-progress .progress-shell{background:rgba(232,238,250,.9)}
+  .stage-card:hover{transform:translateY(-3px);box-shadow:0 18px 32px rgba(15,23,42,.12)}
+  .stage-header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px}
+  .stage-info{flex:1 1 220px;min-width:0}
+  .stage-title{margin:0;font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px;color:var(--text-main)}
+  .stage-title .stage-percent{font-size:12px;color:var(--brand-dark);background:rgba(90,159,242,.18);padding:2px 12px;border-radius:999px;font-weight:700}
+  .stage-description{margin:6px 0 0;font-size:12px;color:var(--text-muted);line-height:1.6}
+  .stage-meta{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:180px}
+  .stage-status{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:700}
+  .stage-card.stage-completed .stage-status{background:rgba(10,143,90,.16);color:var(--ok)}
+  .stage-card.stage-in-progress .stage-status{background:rgba(90,159,242,.16);color:var(--brand-dark)}
+  .stage-card.stage-pending .stage-status{background:rgba(110,114,134,.12);color:var(--text-muted)}
+  .stage-amounts{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;color:var(--text-muted)}
+  .stage-amounts strong{color:var(--text-main)}
+  .stage-remaining{color:var(--danger);font-weight:600}
+  .stage-card.stage-in-progress .stage-remaining{color:var(--brand-dark)}
+  .stage-card.stage-completed .stage-remaining{color:var(--ok)}
+  .stage-progress{height:10px;margin-top:0}
+  .stage-progress .progress-label{font-size:11px}
+  @media (max-width:640px){
+    .modal-panel{padding:24px 20px}
+    .modal-close{top:14px;inset-inline-start:14px}
+    .stage-meta{align-items:flex-start;min-width:0}
+    .stage-amounts{align-items:flex-start;text-align:right}
+  }
 
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   input,select,button{padding:10px 12px;border:1px solid #d6d9e5;border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--text-main);transition:border-color .25s,box-shadow .25s}
@@ -235,6 +281,39 @@
   };
   const expectedTotals = structuredClone(defaultExpected);
   const revenueTarget = 983625;
+  const revenueStages = [
+    {
+      id: "stage-1",
+      title: "الدفعة الأولى",
+      percentage: 30,
+      description: "30٪ من إجمالي قيمة العقد تدفع مقدماً عند توقيع العقد للبدء بأعمال السور الخارجي والدروة وتدعيم السقف وأعمال الهدم."
+    },
+    {
+      id: "stage-2",
+      title: "الدفعة الثانية",
+      percentage: 20,
+      description: "20٪ من إجمالي قيمة العقد تدفع عند بدء أعمال النجارة."
+    },
+    {
+      id: "stage-3",
+      title: "الدفعة الثالثة",
+      percentage: 20,
+      description: "20٪ من إجمالي قيمة العقد تدفع عند بدء أعمال تركيب الحدادة."
+    },
+    {
+      id: "stage-4",
+      title: "الدفعة الرابعة",
+      percentage: 25,
+      description: "25٪ من إجمالي قيمة العقد تدفع عند بدء أعمال الصب وأعمال الستارة."
+    },
+    {
+      id: "stage-5",
+      title: "الدفعة الخامسة (الأخيرة)",
+      percentage: 5,
+      description: "5٪ من إجمالي قيمة العقد تدفع عند الانتهاء من جميع الأعمال وتسليم المشروع للطرف الثاني."
+    }
+  ];
+  let currentRevenueTotal = 0;
 
   /******** أدوات واجهة ********/
   const $  = s => document.querySelector(s);
@@ -248,6 +327,14 @@
   const filterTo = $("#filterTo");
   const clearFiltersBtn = $("#clearFilters");
   const userArea = $("#userArea");
+  const revenueCard = $("#revenueCard");
+  const revenueModal = $("#revenueModal");
+  const closeRevenueModalBtn = $("#closeRevenueModal");
+  const revenueStagesList = $("#revenueStagesList");
+  const revenueModalTargetValue = $("#revenueModalTargetValue");
+  const revenueModalCollectedValue = $("#revenueModalCollectedValue");
+  const revenueModalRemainingValue = $("#revenueModalRemainingValue");
+  const revenueModalProgressValue = $("#revenueModalProgressValue");
 
   function translateType(t){ return t==="expense"?"مصروف":t==="income"?"إيراد":t==="transfer"?"تحويل":t; }
   function translateLocation(l){ return l==="cash"?"الصندوق":l==="bank"?"البنك":l; }
@@ -265,6 +352,117 @@
   const formatNumber = value => numberFormatter.format(roundNumber(value));
   const currencySymbol = '<span class="currency-symbol">﷼</span>';
   const formatCurrency = value => `${formatNumber(value)} ${currencySymbol}`;
+  const stageStatusTexts = {
+    completed: "مكتملة",
+    "in-progress": "قيد التحصيل",
+    pending: "لم تبدأ بعد"
+  };
+
+  function updateRevenueBreakdown(totalIncome){
+    if(revenueModalTargetValue){
+      revenueModalTargetValue.innerHTML = formatCurrency(revenueTarget);
+    }
+    if(revenueModalCollectedValue){
+      revenueModalCollectedValue.innerHTML = formatCurrency(totalIncome);
+    }
+    if(revenueModalRemainingValue){
+      const remaining = Math.max(revenueTarget - totalIncome, 0);
+      revenueModalRemainingValue.innerHTML = formatCurrency(remaining);
+    }
+    const progressPercent = revenueTarget > 0 ? Math.min(Math.max((totalIncome / revenueTarget) * 100, 0), 100) : 0;
+    if(revenueModalProgressValue){
+      revenueModalProgressValue.textContent = `${Math.round(progressPercent)}%`;
+    }
+    if(!revenueStagesList) return;
+    revenueStagesList.innerHTML = "";
+    let consumed = 0;
+    revenueStages.forEach(stage=>{
+      const stageAmount = (revenueTarget * stage.percentage) / 100;
+      const available = Math.max(totalIncome - consumed, 0);
+      const paid = Math.min(available, stageAmount);
+      const progress = stageAmount > 0 ? Math.min(Math.max((paid / stageAmount) * 100, 0), 100) : 0;
+      const remainingForStage = Math.max(stageAmount - paid, 0);
+      const status = progress >= 100 ? "completed" : progress > 0 ? "in-progress" : "pending";
+      consumed += stageAmount;
+      const card = document.createElement("div");
+      card.className = `stage-card stage-${status}`;
+      const remainingLabel = status === "completed"
+        ? "مكتملة بالكامل"
+        : `المتبقي <strong>${formatCurrency(remainingForStage)}</strong>`;
+      card.innerHTML = `
+        <div class="stage-header">
+          <div class="stage-info">
+            <h3 class="stage-title">${stage.title}<span class="stage-percent">${stage.percentage}%</span></h3>
+            <p class="stage-description">${stage.description}</p>
+          </div>
+          <div class="stage-meta">
+            <span class="stage-status">${stageStatusTexts[status]}</span>
+            <div class="stage-amounts">
+              <span>المستهدف: <strong>${formatCurrency(stageAmount)}</strong></span>
+              <span>المحصّل: <strong>${formatCurrency(paid)}</strong></span>
+              <span class="stage-remaining">${remainingLabel}</span>
+            </div>
+          </div>
+        </div>
+        <div class="progress-shell stage-progress" data-progress="${progress}" data-alert="${status === "completed"}">
+          <div class="progress-bar"></div>
+          <span class="progress-label">${Math.round(progress)}%</span>
+        </div>
+      `;
+      revenueStagesList.appendChild(card);
+      const shell = card.querySelector(".progress-shell");
+      const bar = shell?.querySelector(".progress-bar");
+      if(bar){
+        bar.style.width = "0%";
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            bar.style.width = `${progress}%`;
+          });
+        });
+      }
+    });
+  }
+
+  function openRevenueModal(){
+    if(!revenueModal) return;
+    updateRevenueBreakdown(currentRevenueTotal);
+    revenueModal.classList.add("active");
+    revenueModal.setAttribute("aria-hidden","false");
+    document.body.style.overflow = "hidden";
+    const panel = revenueModal.querySelector(".modal-panel");
+    panel?.focus();
+  }
+
+  function closeRevenueModal(){
+    if(!revenueModal) return;
+    revenueModal.classList.remove("active");
+    revenueModal.setAttribute("aria-hidden","true");
+    document.body.style.overflow = "";
+    revenueCard?.focus();
+  }
+
+  if(revenueCard){
+    revenueCard.addEventListener("click", openRevenueModal);
+    revenueCard.addEventListener("keydown", evt=>{
+      if(evt.key === "Enter" || evt.key === " "){
+        evt.preventDefault();
+        openRevenueModal();
+      }
+    });
+  }
+  closeRevenueModalBtn?.addEventListener("click", closeRevenueModal);
+  revenueModal?.addEventListener("click", evt=>{
+    if(evt.target === revenueModal){
+      closeRevenueModal();
+    }
+  });
+  document.addEventListener("keydown", evt=>{
+    if(evt.key === "Escape" && revenueModal?.classList.contains("active")){
+      closeRevenueModal();
+    }
+  });
+
+  updateRevenueBreakdown(0);
 
   /******** مصادقة ********/
   onAuthStateChanged(auth, async (user)=>{
@@ -406,6 +604,8 @@
         totalIncomeLabel.textContent = revenueTarget > 0 ? `${Math.round(rawPerc)}%` : "—";
       }
     }
+    currentRevenueTotal = totalIncome;
+    updateRevenueBreakdown(totalIncome);
     $("#cashBalance").innerHTML  = formatCurrency(cash);
     $("#bankBalance").innerHTML  = formatCurrency(bank);
 
@@ -616,7 +816,7 @@
     <div class="card summary-card cash-card"><small>رصيد الصندوق</small><b id="cashBalance">0 <span class="currency-symbol">﷼</span></b></div>
     <div class="card summary-card"><small>رصيد البنك</small><b id="bankBalance">0 <span class="currency-symbol">﷼</span></b></div>
     <div class="card summary-card"><small>إجمالي المصروفات</small><b id="totalExpenses">0 <span class="currency-symbol">﷼</span></b></div>
-    <div class="card category-card revenue-card">
+    <div class="card category-card revenue-card" id="revenueCard" role="button" tabindex="0" aria-haspopup="dialog" aria-controls="revenueModal">
       <div class="card-header">
         <span class="card-title">إجمالي الإيرادات</span>
       </div>
@@ -627,6 +827,33 @@
         <div class="progress-bar"></div>
         <span class="progress-label" id="totalIncomeProgressLabel">0%</span>
       </div>
+    </div>
+  </div>
+
+  <div id="revenueModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-panel" role="document" tabindex="-1">
+      <button type="button" class="modal-close" id="closeRevenueModal" aria-label="إغلاق">&times;</button>
+      <h2 class="modal-title">تفاصيل دفعات الإيرادات</h2>
+      <p class="modal-subtitle">متابعة دفعات العقد وإظهار نسب الإنجاز لكل مرحلة.</p>
+      <div class="modal-summary">
+        <div class="summary-item">
+          <span class="summary-label">قيمة العقد</span>
+          <span class="summary-value" id="revenueModalTargetValue">0 <span class="currency-symbol">﷼</span></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">المحصل حتى الآن</span>
+          <span class="summary-value" id="revenueModalCollectedValue">0 <span class="currency-symbol">﷼</span></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">المتبقي</span>
+          <span class="summary-value" id="revenueModalRemainingValue">0 <span class="currency-symbol">﷼</span></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">نسبة الإنجاز</span>
+          <span class="summary-value" id="revenueModalProgressValue">0%</span>
+        </div>
+      </div>
+      <div class="stages-list" id="revenueStagesList"></div>
     </div>
   </div>
 
