@@ -643,6 +643,60 @@
     });
   }
 
+  async function buildShareCanvasFromTable(tableElement, categoryName, html2canvasLib){
+    if(!tableElement) throw new Error("NO_TABLE_ELEMENT");
+    if(typeof html2canvasLib !== "function") throw new Error("HTML2CANVAS_MISSING");
+
+    const safeWidth = Math.max(tableElement.scrollWidth, tableElement.offsetWidth, 960);
+    const staging = document.createElement("div");
+    staging.style.position = "absolute";
+    staging.style.insetInlineStart = "-2000px";
+    staging.style.top = "0";
+    staging.style.background = "#ffffff";
+    staging.style.padding = "20px";
+    staging.style.border = "1px solid #e6e8f0";
+    staging.style.borderRadius = "18px";
+    staging.style.boxShadow = "0 10px 26px rgba(15,23,42,.12)";
+    staging.style.direction = "rtl";
+    staging.style.fontFamily = 'Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+    staging.style.width = `${safeWidth}px`;
+
+    const heading = document.createElement("div");
+    heading.textContent = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+    heading.style.fontWeight = "700";
+    heading.style.fontSize = "20px";
+    heading.style.marginBottom = "10px";
+    heading.style.color = "#1c1c28";
+
+    const hint = document.createElement("div");
+    hint.textContent = "تم توليد هذه الصورة من التطبيق";
+    hint.style.fontSize = "12px";
+    hint.style.color = "#6e7286";
+    hint.style.marginBottom = "12px";
+
+    const clonedTable = tableElement.cloneNode(true);
+    clonedTable.style.width = "100%";
+    clonedTable.style.minWidth = "0";
+
+    staging.appendChild(heading);
+    staging.appendChild(hint);
+    staging.appendChild(clonedTable);
+    document.body.appendChild(staging);
+
+    const canvas = await html2canvasLib(staging, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      width: safeWidth,
+      windowWidth: safeWidth,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      useCORS: true
+    });
+
+    staging.remove();
+    return canvas;
+  }
+
   async function shareCategoryRecordsAsImage(){
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
@@ -662,17 +716,10 @@
     const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
     shareCategoryModalBtn.disabled = true;
     shareCategoryModalBtn.setAttribute("aria-disabled", "true");
-    shareCategoryModalBtn.textContent = "جاري التحضير...";
+    shareCategoryModalBtn.textContent = "جاري تجهيز الصورة...";
 
     try{
-      const desiredWidth = Math.max(tableElement.scrollWidth, 1024);
-      const canvas = await html2canvasLib(tableElement, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        width: desiredWidth,
-        windowWidth: desiredWidth,
-        useCORS: true
-      });
+      const canvas = await buildShareCanvasFromTable(tableElement, activeCategoryName, html2canvasLib);
 
       const blob = await canvasToBlob(canvas);
       if(!blob) throw new Error("NO_BLOB");
