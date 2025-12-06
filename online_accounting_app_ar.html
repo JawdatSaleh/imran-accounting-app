@@ -596,6 +596,10 @@
     const columnCount = headers.length || (rows[0]?.length || 1);
     const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
 
+    if(rows.length === 0){
+      rows.push(Array.from({ length: columnCount }, (_, idx)=> idx === 0 ? "لا توجد سجلات للعرض" : "—"));
+    }
+
     return { headers: normalizedHeaders, rows, footerStartIndex };
   }
 
