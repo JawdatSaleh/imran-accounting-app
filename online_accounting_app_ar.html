@@ -678,58 +678,200 @@
     });
   }
 
-  async function buildShareCanvasFromTable(tableElement, categoryName, html2canvasLib){
-    if(!tableElement) throw new Error("NO_TABLE_ELEMENT");
-    if(typeof html2canvasLib !== "function") throw new Error("HTML2CANVAS_MISSING");
+  function drawTableCanvasFallback(tableElement, categoryName){
+    const headers = Array.from(tableElement.querySelectorAll("thead th"))
+      .map(th=> th.textContent.trim());
+    const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
+    const footerRows = Array.from(tableElement.tFoot?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
 
-    const safeWidth = Math.max(tableElement.scrollWidth, tableElement.offsetWidth, 960);
-    const staging = document.createElement("div");
-    staging.style.position = "absolute";
-    staging.style.insetInlineStart = "-2000px";
-    staging.style.top = "0";
-    staging.style.background = "#ffffff";
-    staging.style.padding = "20px";
-    staging.style.border = "1px solid #e6e8f0";
-    staging.style.borderRadius = "18px";
-    staging.style.boxShadow = "0 10px 26px rgba(15,23,42,.12)";
-    staging.style.direction = "rtl";
-    staging.style.fontFamily = 'Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-    staging.style.width = `${safeWidth}px`;
+    const rows = [...bodyRows, ...footerRows];
+    const footerStartIndex = bodyRows.length;
+    const columnCount = headers.length || (rows[0]?.length || 1);
+    const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
 
-    const heading = document.createElement("div");
-    heading.textContent = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
-    heading.style.fontWeight = "700";
-    heading.style.fontSize = "20px";
-    heading.style.marginBottom = "10px";
-    heading.style.color = "#1c1c28";
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if(!ctx){
+      throw new Error("CANVAS_CONTEXT_UNAVAILABLE");
+    }
 
-    const hint = document.createElement("div");
-    hint.textContent = "تم توليد هذه الصورة من التطبيق";
-    hint.style.fontSize = "12px";
-    hint.style.color = "#6e7286";
-    hint.style.marginBottom = "12px";
+    const margin = 24;
+    const baseFont = '14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.font = baseFont;
+    const textPaddingX = 18;
+    const rowHeight = 44;
+    const headerHeight = 48;
+    const maxWidth = 1500;
 
-    const clonedTable = tableElement.cloneNode(true);
-    clonedTable.style.width = "100%";
-    clonedTable.style.minWidth = "0";
+    const measureText = txt=> Math.ceil(ctx.measureText(txt || "").width);
+    const colWidths = Array.from({ length: columnCount }, ()=> 120);
 
-    staging.appendChild(heading);
-    staging.appendChild(hint);
-    staging.appendChild(clonedTable);
-    document.body.appendChild(staging);
-
-    const canvas = await html2canvasLib(staging, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      width: safeWidth,
-      windowWidth: safeWidth,
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      useCORS: true
+    normalizedHeaders.forEach((h, i)=>{
+      colWidths[i] = Math.max(colWidths[i] || 0, measureText(h) + textPaddingX * 2);
+    });
+    rows.forEach(row=>{
+      row.forEach((cell, i)=>{
+        colWidths[i] = Math.max(colWidths[i] || 0, measureText(cell) + textPaddingX * 2);
+      });
     });
 
-    staging.remove();
+    const rawWidth = colWidths.reduce((sum, w)=> sum + w, 0) + margin * 2;
+    const scale = rawWidth > maxWidth ? maxWidth / rawWidth : 1;
+    const contentWidth = rawWidth - margin * 2;
+    const titleHeight = 30;
+    const hintHeight = 22;
+    const tableHeight = headerHeight + rows.length * rowHeight;
+    const rawHeight = margin * 2 + titleHeight + hintHeight + tableHeight;
+
+    canvas.width = Math.max(720, rawWidth * scale);
+    canvas.height = Math.max(480, rawHeight * scale);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
+    ctx.direction = "rtl";
+    ctx.textBaseline = "middle";
+
+    let currentY = margin;
+    ctx.fillStyle = "#1c1c28";
+    ctx.font = '700 20px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = "right";
+    const title = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+    ctx.fillText(title, canvas.width / scale - margin, currentY + 14);
+
+    currentY += titleHeight;
+    ctx.font = baseFont;
+    ctx.fillStyle = "#6e7286";
+    ctx.fillText("تم توليد هذه الصورة من التطبيق", canvas.width / scale - margin, currentY + 10);
+
+    currentY += hintHeight;
+    ctx.textAlign = "center";
+
+    // رسم رأس الجدول
+    ctx.font = '700 14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.fillStyle = "#f1f4fb";
+    ctx.strokeStyle = "#dce3f5";
+    ctx.lineWidth = 1;
+    ctx.fillRect(margin, currentY, contentWidth, headerHeight);
+    ctx.strokeRect(margin, currentY, contentWidth, headerHeight);
+
+    let cursorX = canvas.width / scale - margin;
+    normalizedHeaders.forEach((headerText, index)=>{
+      const colWidth = colWidths[index] || 140;
+      const startX = cursorX - colWidth;
+      ctx.fillStyle = "#1c1c28";
+      ctx.fillText(headerText || "", startX + colWidth / 2, currentY + headerHeight / 2);
+      ctx.strokeStyle = "#e5e9f5";
+      ctx.beginPath();
+      ctx.moveTo(startX, currentY);
+      ctx.lineTo(startX, currentY + headerHeight);
+      ctx.stroke();
+      cursorX -= colWidth;
+    });
+    ctx.beginPath();
+    ctx.moveTo(margin + contentWidth, currentY);
+    ctx.lineTo(margin + contentWidth, currentY + headerHeight);
+    ctx.stroke();
+
+    currentY += headerHeight;
+
+    // رسم صفوف الجسم + التذييل
+    ctx.font = baseFont;
+    rows.forEach((row, rowIndex)=>{
+      const isFooterRow = rowIndex >= footerStartIndex;
+      const rowTop = currentY + rowIndex * rowHeight;
+      ctx.fillStyle = isFooterRow ? "#fdf4f1" : (rowIndex % 2 === 0 ? "#ffffff" : "#f9fbff");
+      ctx.fillRect(margin, rowTop, contentWidth, rowHeight);
+      ctx.strokeStyle = "#e5e9f5";
+      ctx.strokeRect(margin, rowTop, contentWidth, rowHeight);
+
+      let cellX = canvas.width / scale - margin;
+      row.forEach((cellText, cellIndex)=>{
+        const colWidth = colWidths[cellIndex] || 140;
+        const startX = cellX - colWidth;
+        ctx.fillStyle = "#1c1c28";
+        if(isFooterRow){
+          ctx.font = '700 14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+        }else{
+          ctx.font = baseFont;
+        }
+        ctx.fillText(cellText || "", startX + colWidth / 2, rowTop + rowHeight / 2);
+        ctx.strokeStyle = "#e5e9f5";
+        ctx.beginPath();
+        ctx.moveTo(startX, rowTop);
+        ctx.lineTo(startX, rowTop + rowHeight);
+        ctx.stroke();
+        cellX -= colWidth;
+      });
+      ctx.beginPath();
+      ctx.moveTo(margin + contentWidth, rowTop);
+      ctx.lineTo(margin + contentWidth, rowTop + rowHeight);
+      ctx.stroke();
+    });
+
     return canvas;
+  }
+
+  async function buildShareCanvasFromTable(tableElement, categoryName, html2canvasLib){
+    if(!tableElement) throw new Error("NO_TABLE_ELEMENT");
+
+    if(typeof html2canvasLib === "function"){
+      try{
+        const safeWidth = Math.max(tableElement.scrollWidth, tableElement.offsetWidth, 960);
+        const staging = document.createElement("div");
+        staging.style.position = "absolute";
+        staging.style.insetInlineStart = "-2000px";
+        staging.style.top = "0";
+        staging.style.background = "#ffffff";
+        staging.style.padding = "20px";
+        staging.style.border = "1px solid #e6e8f0";
+        staging.style.borderRadius = "18px";
+        staging.style.boxShadow = "0 10px 26px rgba(15,23,42,.12)";
+        staging.style.direction = "rtl";
+        staging.style.fontFamily = 'Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+        staging.style.width = `${safeWidth}px`;
+
+        const heading = document.createElement("div");
+        heading.textContent = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+        heading.style.fontWeight = "700";
+        heading.style.fontSize = "20px";
+        heading.style.marginBottom = "10px";
+        heading.style.color = "#1c1c28";
+
+        const hint = document.createElement("div");
+        hint.textContent = "تم توليد هذه الصورة من التطبيق";
+        hint.style.fontSize = "12px";
+        hint.style.color = "#6e7286";
+        hint.style.marginBottom = "12px";
+
+        const clonedTable = tableElement.cloneNode(true);
+        clonedTable.style.width = "100%";
+        clonedTable.style.minWidth = "0";
+
+        staging.appendChild(heading);
+        staging.appendChild(hint);
+        staging.appendChild(clonedTable);
+        document.body.appendChild(staging);
+
+        const canvas = await html2canvasLib(staging, {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          width: safeWidth,
+          windowWidth: safeWidth,
+          scrollX: 0,
+          scrollY: -window.scrollY,
+          useCORS: true
+        });
+
+        staging.remove();
+        return canvas;
+      }catch(captureError){
+        console.warn("html2canvas capture failed, using manual renderer", captureError);
+      }
+    }
+
+    return drawTableCanvasFallback(tableElement, categoryName);
   }
 
   async function shareCategoryRecordsAsImage(){
@@ -742,18 +884,13 @@
       return;
     }
 
-    const html2canvasLib = await ensureHtml2Canvas();
-    if(typeof html2canvasLib !== "function"){
-      alert("خدمة إنشاء الصورة غير متوفرة في الوقت الحالي.");
-      return;
-    }
-
     const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
     shareCategoryModalBtn.disabled = true;
     shareCategoryModalBtn.setAttribute("aria-disabled", "true");
     shareCategoryModalBtn.textContent = "جاري تجهيز الصورة...";
 
     try{
+      const html2canvasLib = await ensureHtml2Canvas().catch(()=>null);
       const canvas = await buildShareCanvasFromTable(tableElement, activeCategoryName, html2canvasLib);
 
       const blob = await canvasToBlob(canvas);
