@@ -74,7 +74,7 @@
   .modal-panel::-webkit-scrollbar-thumb{background:rgba(90,159,242,.35);border-radius:999px}
   .modal-close{position:absolute;top:18px;inset-inline-end:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease}
   .modal-close:hover{background:rgba(215,38,61,.2);color:#fff;transform:translateY(-1px)}
-  .modal-share{position:absolute;top:18px;inset-inline-start:18px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;height:36px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(90,159,242,.16),rgba(90,159,242,.28));color:var(--brand-dark);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,159,242,.18);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
+  .modal-share{position:absolute;top:18px;left:18px;right:auto;display:inline-flex;align-items:center;gap:8px;padding:0 16px;height:36px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(90,159,242,.16),rgba(90,159,242,.28));color:var(--brand-dark);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,159,242,.18);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
   .modal-share:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(90,159,242,.22);filter:brightness(1.05)}
   .modal-share:disabled{opacity:.6;cursor:progress;transform:none;box-shadow:0 4px 12px rgba(90,159,242,.15)}
   .modal-share .share-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(90,159,242,.2);color:var(--brand-dark);font-size:11px;font-weight:700}
@@ -115,7 +115,7 @@
   @media (max-width:640px){
     .modal-panel{padding:24px 20px}
     .modal-close{top:14px;inset-inline-end:14px}
-    .modal-share{top:14px;inset-inline-start:14px}
+    .modal-share{top:14px;left:14px;right:auto}
     .stage-meta{align-items:flex-start;min-width:0}
     .stage-amounts{align-items:flex-start;text-align:right}
   }
@@ -634,6 +634,69 @@
     return Promise.resolve(new Blob([uint8Array], { type: "image/png" }));
   }
 
+  function blobToDataUrl(blob){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>resolve(reader.result);
+      reader.onerror = ()=>reject(new Error("DATA_URL_READ_ERROR"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function buildShareCanvasFromTable(tableElement, categoryName, html2canvasLib){
+    if(!tableElement) throw new Error("NO_TABLE_ELEMENT");
+    if(typeof html2canvasLib !== "function") throw new Error("HTML2CANVAS_MISSING");
+
+    const safeWidth = Math.max(tableElement.scrollWidth, tableElement.offsetWidth, 960);
+    const staging = document.createElement("div");
+    staging.style.position = "absolute";
+    staging.style.insetInlineStart = "-2000px";
+    staging.style.top = "0";
+    staging.style.background = "#ffffff";
+    staging.style.padding = "20px";
+    staging.style.border = "1px solid #e6e8f0";
+    staging.style.borderRadius = "18px";
+    staging.style.boxShadow = "0 10px 26px rgba(15,23,42,.12)";
+    staging.style.direction = "rtl";
+    staging.style.fontFamily = 'Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
+    staging.style.width = `${safeWidth}px`;
+
+    const heading = document.createElement("div");
+    heading.textContent = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+    heading.style.fontWeight = "700";
+    heading.style.fontSize = "20px";
+    heading.style.marginBottom = "10px";
+    heading.style.color = "#1c1c28";
+
+    const hint = document.createElement("div");
+    hint.textContent = "تم توليد هذه الصورة من التطبيق";
+    hint.style.fontSize = "12px";
+    hint.style.color = "#6e7286";
+    hint.style.marginBottom = "12px";
+
+    const clonedTable = tableElement.cloneNode(true);
+    clonedTable.style.width = "100%";
+    clonedTable.style.minWidth = "0";
+
+    staging.appendChild(heading);
+    staging.appendChild(hint);
+    staging.appendChild(clonedTable);
+    document.body.appendChild(staging);
+
+    const canvas = await html2canvasLib(staging, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      width: safeWidth,
+      windowWidth: safeWidth,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      useCORS: true
+    });
+
+    staging.remove();
+    return canvas;
+  }
+
   async function shareCategoryRecordsAsImage(){
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
@@ -653,17 +716,10 @@
     const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
     shareCategoryModalBtn.disabled = true;
     shareCategoryModalBtn.setAttribute("aria-disabled", "true");
-    shareCategoryModalBtn.textContent = "جاري التحضير...";
+    shareCategoryModalBtn.textContent = "جاري تجهيز الصورة...";
 
     try{
-      const desiredWidth = Math.max(tableElement.scrollWidth, 1024);
-      const canvas = await html2canvasLib(tableElement, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        width: desiredWidth,
-        windowWidth: desiredWidth,
-        useCORS: true
-      });
+      const canvas = await buildShareCanvasFromTable(tableElement, activeCategoryName, html2canvasLib);
 
       const blob = await canvasToBlob(canvas);
       if(!blob) throw new Error("NO_BLOB");
@@ -672,11 +728,22 @@
       const fileName = `records-${safeName}.png`;
       const file = typeof File === "function" ? new File([blob], fileName, { type: "image/png" }) : null;
 
-      if(file && navigator.canShare && navigator.canShare({ files: [file] })){
+      const shareTitle = `سجلات ${activeCategoryName || ""}`.trim();
+      const shareText = `صورة من جدول سجلات ${activeCategoryName || ""} لمشاركتها في أي تطبيق.`.trim();
+      const canShareFiles = file && navigator.canShare?.({ files: [file] });
+      const dataUrl = await blobToDataUrl(blob).catch(()=>null);
+
+      if(canShareFiles){
         await navigator.share({
           files: [file],
-          title: `سجلات ${activeCategoryName || ""}`.trim(),
-          text: `صورة من جدول سجلات ${activeCategoryName || ""} لمشاركتها عبر واتس اب.`.trim()
+          title: shareTitle,
+          text: shareText
+        });
+      }else if(navigator.share && dataUrl){
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: dataUrl
         });
       }else{
         const url = URL.createObjectURL(blob);
@@ -687,7 +754,7 @@
         link.click();
         link.remove();
         setTimeout(()=>URL.revokeObjectURL(url), 4000);
-        alert("تم تنزيل الصورة. شاركها عبر واتس اب من معرض الصور لديك.");
+        alert("تم تنزيل الصورة. يمكنك مشاركتها من أي تطبيق عبر المعرض أو الملفات.");
       }
     }catch(error){
       console.error("shareCategoryRecordsAsImage", error);
