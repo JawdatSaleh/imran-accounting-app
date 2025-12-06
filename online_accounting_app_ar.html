@@ -583,76 +583,20 @@
     }
   }
 
-  async function ensureHtml2Canvas(){
-    if(typeof window === "undefined") return null;
-    if(typeof window.html2canvas === "function") return window.html2canvas;
+  function extractCategoryTableData(tableElement){
+    const headers = Array.from(tableElement.querySelectorAll("thead th"))
+      .map(th=> th.textContent.trim());
+    const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
+    const footerRows = Array.from(tableElement.tFoot?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
 
-    const sources = [
-      {
-        src: "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
-        integrity: "sha512-BNa5u86XC0ZAY7WjVB7FtBVVn7a4MyuMxDN/68LUEDlTF/WZ0zR1ekR4WagM9YIvEBSGIWXhe/9QgW8qCV3R8A=="
-      },
-      {
-        src: "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
-        integrity: "sha512-BNa5u86XC0ZAY7WjVB7FtBVVn7a4MyuMxDN/68LUEDlTF/WZ0zR1ekR4WagM9YIvEBSGIWXhe/9QgW8qCV3R8A=="
-      }
-    ];
+    const rows = [...bodyRows, ...footerRows];
+    const footerStartIndex = bodyRows.length;
+    const columnCount = headers.length || (rows[0]?.length || 1);
+    const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
 
-    for(const source of sources){
-      if(typeof window.html2canvas === "function") break;
-
-      let loader = document.querySelector(`script[data-html2canvas-src="${source.src}"]`);
-
-      if(loader?.dataset.failed === "true"){
-        continue;
-      }
-
-      if(!loader){
-        loader = document.createElement("script");
-        loader.src = source.src;
-        loader.async = true;
-        loader.crossOrigin = "anonymous";
-        loader.referrerPolicy = "no-referrer";
-        loader.integrity = source.integrity;
-        loader.dataset.html2canvasSrc = source.src;
-        document.head.appendChild(loader);
-      }else if(loader.dataset.loaded === "true" && typeof window.html2canvas === "function"){
-        return window.html2canvas;
-      }
-
-      const loaded = await new Promise(resolve=>{
-        if(loader.dataset.loaded === "true"){
-          resolve(true);
-          return;
-        }
-
-        const handleLoad = ()=>{
-          cleanup();
-          loader.dataset.loaded = "true";
-          resolve(true);
-        };
-
-        const handleError = ()=>{
-          cleanup();
-          loader.dataset.failed = "true";
-          resolve(false);
-        };
-
-        const cleanup = ()=>{
-          loader.removeEventListener("load", handleLoad);
-          loader.removeEventListener("error", handleError);
-        };
-
-        loader.addEventListener("load", handleLoad, { once:true });
-        loader.addEventListener("error", handleError, { once:true });
-      });
-
-      if(loaded && typeof window.html2canvas === "function"){
-        return window.html2canvas;
-      }
-    }
-
-    return typeof window.html2canvas === "function" ? window.html2canvas : null;
+    return { headers: normalizedHeaders, rows, footerStartIndex };
   }
 
   async function ensureJsPDF(){
@@ -727,20 +671,6 @@
     return window.jspdf?.jsPDF || null;
   }
 
-  function canvasToBlob(canvas){
-    if(typeof canvas.toBlob === "function"){
-      return new Promise(resolve=>canvas.toBlob(resolve, "image/png", 0.95));
-    }
-    const dataUrl = canvas.toDataURL("image/png", 0.95);
-    const byteString = atob(dataUrl.split(",")[1] || "");
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    for(let i = 0; i < byteString.length; i++){
-      uint8Array[i] = byteString.charCodeAt(i);
-    }
-    return Promise.resolve(new Blob([uint8Array], { type: "image/png" }));
-  }
-
   function blobToDataUrl(blob){
     return new Promise((resolve, reject)=>{
       const reader = new FileReader();
@@ -750,276 +680,245 @@
     });
   }
 
-  function buildPdfFromCanvas(canvas, jsPDFCtor){
-    const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.95);
-    if(jsPDFCtor){
+  function buildPdfFromTable(tableElement, categoryName, jsPDFCtor){
+    const tableData = extractCategoryTableData(tableElement);
+
+    const pdfFromJsPDF = ()=>{
+      if(!jsPDFCtor) return null;
       try{
-        const orientation = canvas.width >= canvas.height ? "l" : "p";
-        const pdf = new jsPDFCtor({
-          orientation,
-          unit: "px",
-          format: [canvas.width, canvas.height],
-          compress: true
+        const doc = new jsPDFCtor({ orientation: "l", unit: "pt", format: "a4" });
+        if(typeof doc.setR2L === "function") doc.setR2L(true);
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 32;
+        const paddingX = 10;
+        const rowHeight = 26;
+        const headerHeight = 28;
+        const titleFont = 16;
+        const baseFont = 11;
+        const headerFont = 12;
+        const availableWidth = pageWidth - margin * 2;
+
+        const measure = (text, size)=>{
+          doc.setFontSize(size);
+          return Math.max(90, doc.getTextWidth(text || "") + paddingX * 2);
+        };
+
+        const colWidths = tableData.headers.map(h=> measure(h, headerFont));
+        tableData.rows.forEach(row=>{
+          row.forEach((cell, i)=>{
+            colWidths[i] = Math.max(colWidths[i] || 90, measure(cell, baseFont));
+          });
         });
 
-        pdf.addImage(jpegDataUrl, "JPEG", 0, 0, canvas.width, canvas.height);
-        const arrayBuffer = pdf.output("arraybuffer");
+        const totalWidth = colWidths.reduce((sum, w)=> sum + w, 0);
+        const scale = totalWidth > availableWidth ? availableWidth / totalWidth : 1;
+        const scaledWidths = colWidths.map(w=> w * scale);
+
+        let cursorY = margin;
+        const renderTitleBlock = ()=>{
+          const title = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(titleFont);
+          doc.text(title, pageWidth - margin, cursorY + titleFont, { align: "right" });
+          cursorY += titleFont + 6;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(baseFont);
+          doc.text("تم تصدير هذا الجدول من التطبيق", pageWidth - margin, cursorY + baseFont, { align: "right" });
+          cursorY += baseFont + 10;
+        };
+
+        const drawHeaderRow = ()=>{
+          doc.setFillColor(241, 244, 251);
+          doc.setDrawColor(220, 227, 245);
+          doc.rect(margin, cursorY, availableWidth, headerHeight, "FD");
+
+          let cellRight = pageWidth - margin;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(headerFont);
+          tableData.headers.forEach((text, idx)=>{
+            const width = scaledWidths[idx] || 90;
+            const startX = cellRight - width;
+            doc.line(startX, cursorY, startX, cursorY + headerHeight);
+            doc.text(text || "", startX + width - paddingX, cursorY + headerHeight / 2 + 4, { align: "right", baseline: "middle" });
+            cellRight -= width;
+          });
+
+          doc.line(margin + availableWidth, cursorY, margin + availableWidth, cursorY + headerHeight);
+          cursorY += headerHeight;
+        };
+
+        const resetPage = (includeTitle)=>{
+          if(includeTitle){
+            renderTitleBlock();
+          }
+          drawHeaderRow();
+        };
+
+        renderTitleBlock();
+        drawHeaderRow();
+
+        doc.setFontSize(baseFont);
+        tableData.rows.forEach((row, rowIndex)=>{
+          if(cursorY + rowHeight > pageHeight - margin){
+            doc.addPage();
+            if(typeof doc.setR2L === "function") doc.setR2L(true);
+            cursorY = margin;
+            resetPage(false);
+          }
+
+          const isFooter = rowIndex >= tableData.footerStartIndex;
+          doc.setFillColor(isFooter ? 253 : (rowIndex % 2 === 0 ? 255 : 249), isFooter ? 244 : (rowIndex % 2 === 0 ? 255 : 251), isFooter ? 241 : 255);
+          doc.setDrawColor(229, 233, 245);
+          doc.rect(margin, cursorY, availableWidth, rowHeight, "FD");
+
+          let cellRight = pageWidth - margin;
+          row.forEach((cellText, cellIndex)=>{
+            const width = scaledWidths[cellIndex] || 90;
+            const startX = cellRight - width;
+            doc.setFont("helvetica", isFooter ? "bold" : "normal");
+            doc.text(cellText || "", startX + width - paddingX, cursorY + rowHeight / 2 + 4, { align: "right", baseline: "middle" });
+            doc.line(startX, cursorY, startX, cursorY + rowHeight);
+            cellRight -= width;
+          });
+
+          doc.line(margin + availableWidth, cursorY, margin + availableWidth, cursorY + rowHeight);
+          cursorY += rowHeight;
+        });
+
+        const arrayBuffer = doc.output("arraybuffer");
         return new Blob([arrayBuffer], { type: "application/pdf" });
-      }catch(pdfError){
-        console.warn("jsPDF generation failed, using fallback", pdfError);
+      }catch(jsPdfError){
+        console.warn("jsPDF table export failed, using fallback", jsPdfError);
+        return null;
       }
-    }
-
-    const [_, base64Data] = jpegDataUrl.split(",");
-    if(!base64Data){
-      throw new Error("PDF_DATA_URL_INVALID");
-    }
-
-    const binary = atob(base64Data);
-    const imgBytes = new Uint8Array(binary.length);
-    for(let i = 0; i < binary.length; i++){
-      imgBytes[i] = binary.charCodeAt(i);
-    }
-
-    const encoder = new TextEncoder();
-    const chunks = [];
-    let position = 0;
-    const push = bytes=>{
-      chunks.push(bytes);
-      position += bytes.length;
     };
 
-    const pushText = text=> push(encoder.encode(text));
+    const buildFallbackPdf = ()=>{
+      const encoder = new TextEncoder();
+      const escapeText = text=> (text || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+      const chunks = [];
+      let position = 0;
+      const push = bytes=>{ chunks.push(bytes); position += bytes.length; };
+      const pushText = txt=> push(encoder.encode(txt));
 
-    const contentStream = `q\n${canvas.width} 0 0 ${canvas.height} 0 0 cm\n/Im0 Do\nQ\n`;
-    const contentBytes = encoder.encode(contentStream);
+      const paddingX = 10;
+      const headerHeight = 26;
+      const rowHeight = 22;
+      const margin = 36;
+      const baseFont = 11;
+      const headerFont = 12;
+      const titleFont = 16;
+      const approxWidth = txt=> Math.max(90, (txt?.length || 1) * 6.2 + paddingX * 2);
 
-    pushText("%PDF-1.3\n");
-    const offsets = [];
-
-    const track = cb=>{ offsets.push(position); cb(); };
-
-    track(()=> pushText("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
-    track(()=> pushText("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
-    track(()=> pushText(`3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im0 4 0 R >> >> /MediaBox [0 0 ${canvas.width} ${canvas.height}] /Contents 5 0 R >>\nendobj\n`));
-    track(()=>{
-      pushText(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\n`);
-      push(imgBytes);
-      pushText("\nendstream\nendobj\n");
-    });
-    track(()=>{
-      pushText(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
-      push(contentBytes);
-      pushText("endstream\nendobj\n");
-    });
-
-    const xrefStart = position;
-    const pad = num=> String(num).padStart(10, "0");
-    let xref = `xref\n0 6\n0000000000 65535 f \n`;
-    for(const offset of offsets){
-      xref += `${pad(offset)} 00000 n \n`;
-    }
-    xref += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-
-    pushText(xref);
-
-    return new Blob(chunks, { type: "application/pdf" });
-  }
-
-  function drawTableCanvasFallback(tableElement, categoryName){
-    const headers = Array.from(tableElement.querySelectorAll("thead th"))
-      .map(th=> th.textContent.trim());
-    const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
-      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
-    const footerRows = Array.from(tableElement.tFoot?.rows || [])
-      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
-
-    const rows = [...bodyRows, ...footerRows];
-    const footerStartIndex = bodyRows.length;
-    const columnCount = headers.length || (rows[0]?.length || 1);
-    const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if(!ctx){
-      throw new Error("CANVAS_CONTEXT_UNAVAILABLE");
-    }
-
-    const margin = 24;
-    const baseFont = '14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.font = baseFont;
-    const textPaddingX = 18;
-    const rowHeight = 44;
-    const headerHeight = 48;
-    const maxWidth = 1500;
-
-    const measureText = txt=> Math.ceil(ctx.measureText(txt || "").width);
-    const colWidths = Array.from({ length: columnCount }, ()=> 120);
-
-    normalizedHeaders.forEach((h, i)=>{
-      colWidths[i] = Math.max(colWidths[i] || 0, measureText(h) + textPaddingX * 2);
-    });
-    rows.forEach(row=>{
-      row.forEach((cell, i)=>{
-        colWidths[i] = Math.max(colWidths[i] || 0, measureText(cell) + textPaddingX * 2);
+      const colWidths = tableData.headers.map(h=> approxWidth(h));
+      tableData.rows.forEach(row=>{
+        row.forEach((cell, i)=>{
+          colWidths[i] = Math.max(colWidths[i] || 90, approxWidth(cell));
+        });
       });
-    });
 
-    const rawWidth = colWidths.reduce((sum, w)=> sum + w, 0) + margin * 2;
-    const scale = rawWidth > maxWidth ? maxWidth / rawWidth : 1;
-    const contentWidth = rawWidth - margin * 2;
-    const titleHeight = 30;
-    const hintHeight = 22;
-    const tableHeight = headerHeight + rows.length * rowHeight;
-    const rawHeight = margin * 2 + titleHeight + hintHeight + tableHeight;
+      const contentWidth = colWidths.reduce((sum, w)=> sum + w, 0);
+      const pageWidth = Math.max(842, contentWidth + margin * 2);
+      const tableHeight = headerHeight + tableData.rows.length * rowHeight;
+      const pageHeight = margin * 2 + titleFont + baseFont + 20 + tableHeight;
+      const tableStartX = pageWidth - margin - contentWidth;
+      const toPdfY = yFromTop=> pageHeight - yFromTop;
 
-    canvas.width = Math.max(720, rawWidth * scale);
-    canvas.height = Math.max(480, rawHeight * scale);
-    ctx.scale(scale, scale);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
-    ctx.direction = "rtl";
-    ctx.textBaseline = "middle";
+      const buildContentStream = ()=>{
+        let cursorY = margin;
+        const parts = ["q\n0 0 0 rg\n0 0 0 RG\n"];
 
-    let currentY = margin;
-    ctx.fillStyle = "#1c1c28";
-    ctx.font = '700 20px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.textAlign = "right";
-    const title = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
-    ctx.fillText(title, canvas.width / scale - margin, currentY + 14);
+        const textLine = (text, x, y, size)=>{
+          parts.push(`BT /F1 ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escapeText(text)}) Tj ET\n`);
+        };
 
-    currentY += titleHeight;
-    ctx.font = baseFont;
-    ctx.fillStyle = "#6e7286";
-    ctx.fillText("تم توليد هذه الصورة من التطبيق", canvas.width / scale - margin, currentY + 10);
+        const drawRect = (x, y, w, h, fill)=>{
+          parts.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re\n${fill ? "f" : "S"}\n`);
+        };
 
-    currentY += hintHeight;
-    ctx.textAlign = "center";
+        textLine(categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة", pageWidth - margin, toPdfY(cursorY + titleFont), titleFont);
+        cursorY += titleFont + 6;
+        textLine("تم تصدير هذا الجدول من التطبيق", pageWidth - margin, toPdfY(cursorY + baseFont), baseFont);
+        cursorY += baseFont + 10;
 
-    // رسم رأس الجدول
-    ctx.font = '700 14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.fillStyle = "#f1f4fb";
-    ctx.strokeStyle = "#dce3f5";
-    ctx.lineWidth = 1;
-    ctx.fillRect(margin, currentY, contentWidth, headerHeight);
-    ctx.strokeRect(margin, currentY, contentWidth, headerHeight);
+        const headerY = cursorY;
+        parts.push("0.945 0.957 0.984 rg\n0.863 0.89 0.957 RG\n");
+        drawRect(tableStartX, toPdfY(headerY + headerHeight), contentWidth, headerHeight, true);
 
-    let cursorX = canvas.width / scale - margin;
-    normalizedHeaders.forEach((headerText, index)=>{
-      const colWidth = colWidths[index] || 140;
-      const startX = cursorX - colWidth;
-      ctx.fillStyle = "#1c1c28";
-      ctx.fillText(headerText || "", startX + colWidth / 2, currentY + headerHeight / 2);
-      ctx.strokeStyle = "#e5e9f5";
-      ctx.beginPath();
-      ctx.moveTo(startX, currentY);
-      ctx.lineTo(startX, currentY + headerHeight);
-      ctx.stroke();
-      cursorX -= colWidth;
-    });
-    ctx.beginPath();
-    ctx.moveTo(margin + contentWidth, currentY);
-    ctx.lineTo(margin + contentWidth, currentY + headerHeight);
-    ctx.stroke();
+        let cursorX = pageWidth - margin;
+        tableData.headers.forEach((cell, idx)=>{
+          const width = colWidths[idx] || 90;
+          const startX = cursorX - width;
+          parts.push(`${startX.toFixed(2)} ${toPdfY(headerY).toFixed(2)} m ${startX.toFixed(2)} ${toPdfY(headerY + headerHeight).toFixed(2)} l S\n`);
+          textLine(cell || "", startX + width - paddingX, toPdfY(headerY + headerHeight / 2 - 3), headerFont);
+          cursorX -= width;
+        });
+        parts.push(`${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(headerY).toFixed(2)} m ${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(headerY + headerHeight).toFixed(2)} l S\n`);
+        cursorY += headerHeight;
 
-    currentY += headerHeight;
+        tableData.rows.forEach((row, rowIndex)=>{
+          const isFooter = rowIndex >= tableData.footerStartIndex;
+          const rowTop = cursorY;
+          if(isFooter){
+            parts.push("0.992 0.957 0.945 rg\n");
+          }else if(rowIndex % 2 !== 0){
+            parts.push("0.976 0.984 1 rg\n");
+          }else{
+            parts.push("1 1 1 rg\n");
+          }
+          parts.push("0.898 0.914 0.957 RG\n");
+          drawRect(tableStartX, toPdfY(rowTop + rowHeight), contentWidth, rowHeight, true);
 
-    // رسم صفوف الجسم + التذييل
-    ctx.font = baseFont;
-    rows.forEach((row, rowIndex)=>{
-      const isFooterRow = rowIndex >= footerStartIndex;
-      const rowTop = currentY + rowIndex * rowHeight;
-      ctx.fillStyle = isFooterRow ? "#fdf4f1" : (rowIndex % 2 === 0 ? "#ffffff" : "#f9fbff");
-      ctx.fillRect(margin, rowTop, contentWidth, rowHeight);
-      ctx.strokeStyle = "#e5e9f5";
-      ctx.strokeRect(margin, rowTop, contentWidth, rowHeight);
-
-      let cellX = canvas.width / scale - margin;
-      row.forEach((cellText, cellIndex)=>{
-        const colWidth = colWidths[cellIndex] || 140;
-        const startX = cellX - colWidth;
-        ctx.fillStyle = "#1c1c28";
-        if(isFooterRow){
-          ctx.font = '700 14px Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-        }else{
-          ctx.font = baseFont;
-        }
-        ctx.fillText(cellText || "", startX + colWidth / 2, rowTop + rowHeight / 2);
-        ctx.strokeStyle = "#e5e9f5";
-        ctx.beginPath();
-        ctx.moveTo(startX, rowTop);
-        ctx.lineTo(startX, rowTop + rowHeight);
-        ctx.stroke();
-        cellX -= colWidth;
-      });
-      ctx.beginPath();
-      ctx.moveTo(margin + contentWidth, rowTop);
-      ctx.lineTo(margin + contentWidth, rowTop + rowHeight);
-      ctx.stroke();
-    });
-
-    return canvas;
-  }
-
-  async function buildShareCanvasFromTable(tableElement, categoryName, html2canvasLib){
-    if(!tableElement) throw new Error("NO_TABLE_ELEMENT");
-
-    if(typeof html2canvasLib === "function"){
-      try{
-        const safeWidth = Math.max(tableElement.scrollWidth, tableElement.offsetWidth, 960);
-        const staging = document.createElement("div");
-        staging.style.position = "absolute";
-        staging.style.insetInlineStart = "-2000px";
-        staging.style.top = "0";
-        staging.style.background = "#ffffff";
-        staging.style.padding = "20px";
-        staging.style.border = "1px solid #e6e8f0";
-        staging.style.borderRadius = "18px";
-        staging.style.boxShadow = "0 10px 26px rgba(15,23,42,.12)";
-        staging.style.direction = "rtl";
-        staging.style.fontFamily = 'Cairo, system-ui, -apple-system, "Segoe UI", sans-serif';
-        staging.style.width = `${safeWidth}px`;
-
-        const heading = document.createElement("div");
-        heading.textContent = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
-        heading.style.fontWeight = "700";
-        heading.style.fontSize = "20px";
-        heading.style.marginBottom = "10px";
-        heading.style.color = "#1c1c28";
-
-        const hint = document.createElement("div");
-        hint.textContent = "تم توليد هذه الصورة من التطبيق";
-        hint.style.fontSize = "12px";
-        hint.style.color = "#6e7286";
-        hint.style.marginBottom = "12px";
-
-        const clonedTable = tableElement.cloneNode(true);
-        clonedTable.style.width = "100%";
-        clonedTable.style.minWidth = "0";
-
-        staging.appendChild(heading);
-        staging.appendChild(hint);
-        staging.appendChild(clonedTable);
-        document.body.appendChild(staging);
-
-        const canvas = await html2canvasLib(staging, {
-          scale: 2,
-          backgroundColor: "#ffffff",
-          width: safeWidth,
-          windowWidth: safeWidth,
-          scrollX: 0,
-          scrollY: -window.scrollY,
-          useCORS: true
+          let colRight = pageWidth - margin;
+          row.forEach((cellText, cellIndex)=>{
+            const width = colWidths[cellIndex] || 90;
+            const startX = colRight - width;
+            parts.push(`${startX.toFixed(2)} ${toPdfY(rowTop).toFixed(2)} m ${startX.toFixed(2)} ${toPdfY(rowTop + rowHeight).toFixed(2)} l S\n`);
+            textLine(cellText || "", startX + width - paddingX, toPdfY(rowTop + rowHeight / 2 - 3), isFooter ? headerFont : baseFont);
+            colRight -= width;
+          });
+          parts.push(`${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(rowTop).toFixed(2)} m ${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(rowTop + rowHeight).toFixed(2)} l S\n`);
+          cursorY += rowHeight;
         });
 
-        staging.remove();
-        return canvas;
-      }catch(captureError){
-        console.warn("html2canvas capture failed, using manual renderer", captureError);
-      }
-    }
+        parts.push("Q\n");
+        return parts.join("");
+      };
 
-    return drawTableCanvasFallback(tableElement, categoryName);
+      const contentString = buildContentStream();
+      const contentBytes = encoder.encode(contentString);
+
+      pushText("%PDF-1.4\n");
+      const offsets = [];
+      const track = cb=>{ offsets.push(position); cb(); };
+
+      track(()=> pushText("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
+      track(()=> pushText("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
+      track(()=> pushText(`3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 6 0 R >> >> /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Contents 5 0 R >>\nendobj\n`));
+      track(()=> pushText("4 0 obj\n<< /Producer (fallback-export) >>\nendobj\n"));
+      track(()=>{
+        pushText(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+        push(contentBytes);
+        pushText("\nendstream\nendobj\n");
+      });
+      track(()=> pushText("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"));
+
+      const xrefStart = position;
+      const pad = num=> String(num).padStart(10, "0");
+      let xref = `xref\n0 7\n0000000000 65535 f \n`;
+      for(const offset of offsets){
+        xref += `${pad(offset)} 00000 n \n`;
+      }
+      xref += `trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+      pushText(xref);
+
+      return new Blob(chunks, { type: "application/pdf" });
+    };
+
+    return pdfFromJsPDF() || buildFallbackPdf();
   }
 
   async function shareCategoryRecordsAsPdf(){
@@ -1038,11 +937,8 @@
     shareCategoryModalBtn.textContent = "جاري تجهيز ملف PDF...";
 
     try{
-      const html2canvasLib = await ensureHtml2Canvas().catch(()=>null);
       const jsPDFCtor = await ensureJsPDF().catch(()=>null);
-      const canvas = await buildShareCanvasFromTable(tableElement, activeCategoryName, html2canvasLib);
-
-      const pdfBlob = buildPdfFromCanvas(canvas, jsPDFCtor);
+      const pdfBlob = buildPdfFromTable(tableElement, activeCategoryName, jsPDFCtor);
       if(!pdfBlob) throw new Error("NO_PDF_BLOB");
 
       const today = new Date();
