@@ -655,6 +655,78 @@
     return typeof window.html2canvas === "function" ? window.html2canvas : null;
   }
 
+  async function ensureJsPDF(){
+    if(typeof window === "undefined") return null;
+    if(window.jspdf?.jsPDF) return window.jspdf.jsPDF;
+
+    const sources = [
+      {
+        src: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+        integrity: "sha512-3H5Y0YX/4p+NuYOSzl1Prr6A91BNIZ1g9C7tuWOS7awsrX3+B4lLNHmmwxSlVlCAJbbnCii1kXtUHOPeja8sBw=="
+      },
+      {
+        src: "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+        integrity: "sha512-3H5Y0YX/4p+NuYOSzl1Prr6A91BNIZ1g9C7tuWOS7awsrX3+B4lLNHmmwxSlVlCAJbbnCii1kXtUHOPeja8sBw=="
+      }
+    ];
+
+    for(const source of sources){
+      if(window.jspdf?.jsPDF) break;
+
+      let loader = document.querySelector(`script[data-jspdf-src="${source.src}"]`);
+
+      if(loader?.dataset.failed === "true"){
+        continue;
+      }
+
+      if(!loader){
+        loader = document.createElement("script");
+        loader.src = source.src;
+        loader.async = true;
+        loader.crossOrigin = "anonymous";
+        loader.referrerPolicy = "no-referrer";
+        loader.integrity = source.integrity;
+        loader.dataset.jspdfSrc = source.src;
+        document.head.appendChild(loader);
+      }else if(loader.dataset.loaded === "true" && window.jspdf?.jsPDF){
+        return window.jspdf.jsPDF;
+      }
+
+      const loaded = await new Promise(resolve=>{
+        if(loader.dataset.loaded === "true"){
+          resolve(true);
+          return;
+        }
+
+        const handleLoad = ()=>{
+          cleanup();
+          loader.dataset.loaded = "true";
+          resolve(true);
+        };
+
+        const handleError = ()=>{
+          cleanup();
+          loader.dataset.failed = "true";
+          resolve(false);
+        };
+
+        const cleanup = ()=>{
+          loader.removeEventListener("load", handleLoad);
+          loader.removeEventListener("error", handleError);
+        };
+
+        loader.addEventListener("load", handleLoad, { once:true });
+        loader.addEventListener("error", handleError, { once:true });
+      });
+
+      if(loaded && window.jspdf?.jsPDF){
+        return window.jspdf.jsPDF;
+      }
+    }
+
+    return window.jspdf?.jsPDF || null;
+  }
+
   function canvasToBlob(canvas){
     if(typeof canvas.toBlob === "function"){
       return new Promise(resolve=>canvas.toBlob(resolve, "image/png", 0.95));
@@ -676,6 +748,82 @@
       reader.onerror = ()=>reject(new Error("DATA_URL_READ_ERROR"));
       reader.readAsDataURL(blob);
     });
+  }
+
+  function buildPdfFromCanvas(canvas, jsPDFCtor){
+    const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+    if(jsPDFCtor){
+      try{
+        const orientation = canvas.width >= canvas.height ? "l" : "p";
+        const pdf = new jsPDFCtor({
+          orientation,
+          unit: "px",
+          format: [canvas.width, canvas.height],
+          compress: true
+        });
+
+        pdf.addImage(jpegDataUrl, "JPEG", 0, 0, canvas.width, canvas.height);
+        const arrayBuffer = pdf.output("arraybuffer");
+        return new Blob([arrayBuffer], { type: "application/pdf" });
+      }catch(pdfError){
+        console.warn("jsPDF generation failed, using fallback", pdfError);
+      }
+    }
+
+    const [_, base64Data] = jpegDataUrl.split(",");
+    if(!base64Data){
+      throw new Error("PDF_DATA_URL_INVALID");
+    }
+
+    const binary = atob(base64Data);
+    const imgBytes = new Uint8Array(binary.length);
+    for(let i = 0; i < binary.length; i++){
+      imgBytes[i] = binary.charCodeAt(i);
+    }
+
+    const encoder = new TextEncoder();
+    const chunks = [];
+    let position = 0;
+    const push = bytes=>{
+      chunks.push(bytes);
+      position += bytes.length;
+    };
+
+    const pushText = text=> push(encoder.encode(text));
+
+    const contentStream = `q\n${canvas.width} 0 0 ${canvas.height} 0 0 cm\n/Im0 Do\nQ\n`;
+    const contentBytes = encoder.encode(contentStream);
+
+    pushText("%PDF-1.3\n");
+    const offsets = [];
+
+    const track = cb=>{ offsets.push(position); cb(); };
+
+    track(()=> pushText("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
+    track(()=> pushText("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
+    track(()=> pushText(`3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im0 4 0 R >> >> /MediaBox [0 0 ${canvas.width} ${canvas.height}] /Contents 5 0 R >>\nendobj\n`));
+    track(()=>{
+      pushText(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\n`);
+      push(imgBytes);
+      pushText("\nendstream\nendobj\n");
+    });
+    track(()=>{
+      pushText(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+      push(contentBytes);
+      pushText("endstream\nendobj\n");
+    });
+
+    const xrefStart = position;
+    const pad = num=> String(num).padStart(10, "0");
+    let xref = `xref\n0 6\n0000000000 65535 f \n`;
+    for(const offset of offsets){
+      xref += `${pad(offset)} 00000 n \n`;
+    }
+    xref += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+    pushText(xref);
+
+    return new Blob(chunks, { type: "application/pdf" });
   }
 
   function drawTableCanvasFallback(tableElement, categoryName){
@@ -874,7 +1022,7 @@
     return drawTableCanvasFallback(tableElement, categoryName);
   }
 
-  async function shareCategoryRecordsAsImage(){
+  async function shareCategoryRecordsAsPdf(){
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
 
@@ -887,23 +1035,26 @@
     const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
     shareCategoryModalBtn.disabled = true;
     shareCategoryModalBtn.setAttribute("aria-disabled", "true");
-    shareCategoryModalBtn.textContent = "جاري تجهيز الصورة...";
+    shareCategoryModalBtn.textContent = "جاري تجهيز ملف PDF...";
 
     try{
       const html2canvasLib = await ensureHtml2Canvas().catch(()=>null);
+      const jsPDFCtor = await ensureJsPDF().catch(()=>null);
       const canvas = await buildShareCanvasFromTable(tableElement, activeCategoryName, html2canvasLib);
 
-      const blob = await canvasToBlob(canvas);
-      if(!blob) throw new Error("NO_BLOB");
+      const pdfBlob = buildPdfFromCanvas(canvas, jsPDFCtor);
+      if(!pdfBlob) throw new Error("NO_PDF_BLOB");
 
+      const today = new Date();
+      const datePart = today.toLocaleDateString("en-CA");
       const safeName = (activeCategoryName || "category").replace(/\s+/g, "-");
-      const fileName = `records-${safeName}.png`;
-      const file = typeof File === "function" ? new File([blob], fileName, { type: "image/png" }) : null;
+      const fileName = `records-${safeName}-${datePart}.pdf`;
+      const file = typeof File === "function" ? new File([pdfBlob], fileName, { type: "application/pdf" }) : null;
 
       const shareTitle = `سجلات ${activeCategoryName || ""}`.trim();
-      const shareText = `صورة من جدول سجلات ${activeCategoryName || ""} لمشاركتها في أي تطبيق.`.trim();
+      const shareText = `ملف PDF يحتوي على جدول سجلات ${activeCategoryName || ""} لمشاركته في أي تطبيق.`.trim();
       const canShareFiles = file && navigator.canShare?.({ files: [file] });
-      const dataUrl = await blobToDataUrl(blob).catch(()=>null);
+      const dataUrl = await blobToDataUrl(pdfBlob).catch(()=>null);
 
       if(canShareFiles){
         await navigator.share({
@@ -918,7 +1069,7 @@
           url: dataUrl
         });
       }else{
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(pdfBlob);
         const link = document.createElement("a");
         link.href = url;
         link.download = fileName;
@@ -926,11 +1077,11 @@
         link.click();
         link.remove();
         setTimeout(()=>URL.revokeObjectURL(url), 4000);
-        alert("تم تنزيل الصورة. يمكنك مشاركتها من أي تطبيق عبر المعرض أو الملفات.");
+        alert("تم تنزيل ملف PDF. يمكنك مشاركته من أي تطبيق عبر الملفات.");
       }
     }catch(error){
-      console.error("shareCategoryRecordsAsImage", error);
-      alert("تعذر تجهيز صورة السجلات، الرجاء المحاولة مرة أخرى.");
+      console.error("shareCategoryRecordsAsPdf", error);
+      alert("تعذر تجهيز ملف PDF للسجلات، الرجاء المحاولة مرة أخرى.");
     }finally{
       shareCategoryModalBtn.disabled = false;
       shareCategoryModalBtn.setAttribute("aria-disabled", "false");
@@ -972,7 +1123,7 @@
     }
   });
   closeCategoryModalBtn?.addEventListener("click", closeCategoryModal);
-  shareCategoryModalBtn?.addEventListener("click", shareCategoryRecordsAsImage);
+  shareCategoryModalBtn?.addEventListener("click", shareCategoryRecordsAsPdf);
   categoryModal?.addEventListener("click", evt=>{
     if(evt.target === categoryModal){
       closeCategoryModal();
@@ -1443,7 +1594,7 @@
   <div id="categoryModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="categoryModalTitle" aria-describedby="categoryModalSubtitle">
     <div class="modal-panel" role="document" tabindex="-1">
       <div class="modal-actions">
-        <button type="button" class="modal-share" id="shareCategoryModal" aria-label="مشاركة جدول السجلات كصورة"><span class="share-icon" aria-hidden="true">⇪</span><span class="sr-only">مشاركة كصورة</span></button>
+        <button type="button" class="modal-share" id="shareCategoryModal" aria-label="مشاركة جدول السجلات كملف PDF"><span class="share-icon" aria-hidden="true">⇪</span><span class="sr-only">مشاركة كملف PDF</span></button>
         <button type="button" class="modal-close" id="closeCategoryModal" aria-label="إغلاق">&times;</button>
       </div>
       <h2 class="modal-title" id="categoryModalTitle">سجلات الفئة</h2>
