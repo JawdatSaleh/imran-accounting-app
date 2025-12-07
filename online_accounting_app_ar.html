@@ -584,8 +584,8 @@
   }
 
   function extractCategoryTableData(tableElement){
-    const headers = Array.from(tableElement.querySelectorAll("thead th"))
-      .map(th=> th.textContent.trim());
+    const headerCells = Array.from(tableElement.querySelectorAll("thead th"));
+    const headers = headerCells.map(th=> th.textContent.trim());
     const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
       .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
     const footerRows = Array.from(tableElement.tFoot?.rows || [])
@@ -596,11 +596,20 @@
     const columnCount = headers.length || (rows[0]?.length || 1);
     const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
 
+    const measuredWidths = headerCells.map(cell=>{
+      const rect = typeof cell.getBoundingClientRect === "function" ? cell.getBoundingClientRect() : null;
+      const dimension = rect?.width || cell.offsetWidth || cell.clientWidth || 0;
+      return Math.max(90, Math.round(dimension));
+    });
+
+    const fallbackWidth = Math.max(90, Math.round((tableElement.getBoundingClientRect?.().width || 720) / (columnCount || 1)));
+    const columnWidths = Array.from({ length: columnCount }, (_, idx)=> measuredWidths[idx] || fallbackWidth);
+
     if(rows.length === 0){
       rows.push(Array.from({ length: columnCount }, (_, idx)=> idx === 0 ? "لا توجد سجلات للعرض" : "—"));
     }
 
-    return { headers: normalizedHeaders, rows, footerStartIndex };
+    return { headers: normalizedHeaders, rows, footerStartIndex, columnWidths };
   }
 
   async function ensureJsPDF(){
@@ -704,15 +713,13 @@
         const headerFont = 12;
         const availableWidth = pageWidth - margin * 2;
 
-        const measure = (text, size)=>{
-          doc.setFontSize(size);
-          return Math.max(90, doc.getTextWidth(text || "") + paddingX * 2);
-        };
+        const measuredWidths = tableData.columnWidths || [];
+        const colWidths = tableData.headers.map((h, idx)=> Math.max(90, measuredWidths[idx] || doc.getTextWidth(String(h)) + paddingX * 2));
 
-        const colWidths = tableData.headers.map(h=> measure(h, headerFont));
         tableData.rows.forEach(row=>{
           row.forEach((cell, i)=>{
-            colWidths[i] = Math.max(colWidths[i] || 90, measure(cell, baseFont));
+            const textWidth = doc.getTextWidth(String(cell || "")) + paddingX * 2;
+            colWidths[i] = Math.max(colWidths[i] || 90, textWidth, measuredWidths[i] || 0);
           });
         });
 
@@ -730,13 +737,14 @@
 
           doc.setFont("helvetica", "normal");
           doc.setFontSize(baseFont);
-          doc.text("تم تصدير هذا الجدول من التطبيق", pageWidth - margin, cursorY + baseFont, { align: "right" });
+          const exportedAt = new Date().toLocaleString("ar-EG");
+          doc.text(`تم التصدير في ${exportedAt}`, pageWidth - margin, cursorY + baseFont, { align: "right" });
           cursorY += baseFont + 10;
         };
 
         const drawHeaderRow = ()=>{
-          doc.setFillColor(241, 244, 251);
-          doc.setDrawColor(220, 227, 245);
+          doc.setFillColor(90, 159, 242);
+          doc.setDrawColor(46, 114, 216);
           doc.rect(margin, cursorY, availableWidth, headerHeight, "FD");
 
           let cellRight = pageWidth - margin;
@@ -745,11 +753,13 @@
           tableData.headers.forEach((text, idx)=>{
             const width = scaledWidths[idx] || 90;
             const startX = cellRight - width;
+            doc.setTextColor(255, 255, 255);
             doc.line(startX, cursorY, startX, cursorY + headerHeight);
             doc.text(text || "", startX + width - paddingX, cursorY + headerHeight / 2 + 4, { align: "right", baseline: "middle" });
             cellRight -= width;
           });
 
+          doc.setTextColor(34, 34, 34);
           doc.line(margin + availableWidth, cursorY, margin + availableWidth, cursorY + headerHeight);
           cursorY += headerHeight;
         };
@@ -770,11 +780,18 @@
             doc.addPage();
             if(typeof doc.setR2L === "function") doc.setR2L(true);
             cursorY = margin;
-            resetPage(false);
+            resetPage(true);
           }
 
           const isFooter = rowIndex >= tableData.footerStartIndex;
-          doc.setFillColor(isFooter ? 253 : (rowIndex % 2 === 0 ? 255 : 249), isFooter ? 244 : (rowIndex % 2 === 0 ? 255 : 251), isFooter ? 241 : 255);
+          const isStriped = rowIndex % 2 !== 0;
+          if(isFooter){
+            doc.setFillColor(245, 233, 229);
+          }else if(isStriped){
+            doc.setFillColor(244, 247, 255);
+          }else{
+            doc.setFillColor(255, 255, 255);
+          }
           doc.setDrawColor(229, 233, 245);
           doc.rect(margin, cursorY, availableWidth, rowHeight, "FD");
 
@@ -817,10 +834,11 @@
       const titleFont = 16;
       const approxWidth = txt=> Math.max(90, (txt?.length || 1) * 6.2 + paddingX * 2);
 
-      const colWidths = tableData.headers.map(h=> approxWidth(h));
+      const measured = tableData.columnWidths || [];
+      const colWidths = tableData.headers.map((h, idx)=> Math.max(90, measured[idx] || approxWidth(h)));
       tableData.rows.forEach(row=>{
         row.forEach((cell, i)=>{
-          colWidths[i] = Math.max(colWidths[i] || 90, approxWidth(cell));
+          colWidths[i] = Math.max(colWidths[i] || 90, measured[i] || approxWidth(cell));
         });
       });
 
@@ -929,6 +947,7 @@
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
 
+    renderCategoryModal(activeCategoryName);
     const tableElement = categoryModal.querySelector(".records-table");
     if(!tableElement){
       alert("لا توجد سجلات لمشاركتها حالياً.");
