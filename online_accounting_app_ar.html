@@ -72,12 +72,15 @@
   .modal-panel{position:relative;width:min(680px,100%);max-height:90vh;overflow-y:auto;background:var(--surface);border-radius:24px;padding:28px;box-shadow:0 30px 70px rgba(15,23,42,.35);border:1px solid rgba(90,159,242,.18)}
   .modal-panel::-webkit-scrollbar{width:8px}
   .modal-panel::-webkit-scrollbar-thumb{background:rgba(90,159,242,.35);border-radius:999px}
-  .modal-close{position:absolute;top:18px;inset-inline-end:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease}
+  .modal-actions{position:absolute;top:14px;inset-inline-end:14px;display:flex;align-items:center;gap:10px}
+  .modal-close{position:absolute;top:18px;inset-inline-end:18px;width:36px;height:36px;border-radius:12px;border:none;background:rgba(215,38,61,.12);color:var(--danger);font-size:22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .25s ease,color .25s ease,transform .2s ease;box-shadow:0 6px 12px rgba(215,38,61,.12)}
   .modal-close:hover{background:rgba(215,38,61,.2);color:#fff;transform:translateY(-1px)}
-  .modal-share{position:absolute;top:18px;inset-inline-start:18px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;height:36px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(90,159,242,.16),rgba(90,159,242,.28));color:var(--brand-dark);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,159,242,.18);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
+  .modal-actions .modal-close{position:static}
+  .modal-share{display:inline-flex;align-items:center;justify-content:center;padding:0;height:36px;width:36px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(90,159,242,.2),rgba(90,159,242,.36));color:var(--brand-dark);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,159,242,.18);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
   .modal-share:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(90,159,242,.22);filter:brightness(1.05)}
   .modal-share:disabled{opacity:.6;cursor:progress;transform:none;box-shadow:0 4px 12px rgba(90,159,242,.15)}
-  .modal-share .share-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(90,159,242,.2);color:var(--brand-dark);font-size:11px;font-weight:700}
+  .modal-share .share-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(90,159,242,.22);color:var(--brand-dark);font-size:12px;font-weight:700}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .modal-title{margin:0;font-size:20px;font-weight:700;color:var(--text-main)}
   .modal-subtitle{margin:6px 0 18px;font-size:13px;color:var(--text-muted)}
   .modal-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
@@ -115,7 +118,7 @@
   @media (max-width:640px){
     .modal-panel{padding:24px 20px}
     .modal-close{top:14px;inset-inline-end:14px}
-    .modal-share{top:14px;inset-inline-start:14px}
+    .modal-actions{top:12px;inset-inline-end:12px}
     .stage-meta{align-items:flex-start;min-width:0}
     .stage-amounts{align-items:flex-start;text-align:right}
   }
@@ -580,106 +583,412 @@
     }
   }
 
-  async function ensureHtml2Canvas(){
+  function extractCategoryTableData(tableElement){
+    const headerCells = Array.from(tableElement.querySelectorAll("thead th"));
+    const headers = headerCells.map(th=> th.textContent.trim());
+    const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
+    const footerRows = Array.from(tableElement.tFoot?.rows || [])
+      .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
+
+    const rows = [...bodyRows, ...footerRows];
+    const footerStartIndex = bodyRows.length;
+    const columnCount = headers.length || (rows[0]?.length || 1);
+    const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
+
+    const measuredWidths = headerCells.map(cell=>{
+      const rect = typeof cell.getBoundingClientRect === "function" ? cell.getBoundingClientRect() : null;
+      const dimension = rect?.width || cell.offsetWidth || cell.clientWidth || 0;
+      return Math.max(90, Math.round(dimension));
+    });
+
+    const fallbackWidth = Math.max(90, Math.round((tableElement.getBoundingClientRect?.().width || 720) / (columnCount || 1)));
+    const columnWidths = Array.from({ length: columnCount }, (_, idx)=> measuredWidths[idx] || fallbackWidth);
+
+    if(rows.length === 0){
+      rows.push(Array.from({ length: columnCount }, (_, idx)=> idx === 0 ? "لا توجد سجلات للعرض" : "—"));
+    }
+
+    return { headers: normalizedHeaders, rows, footerStartIndex, columnWidths };
+  }
+
+  async function ensureJsPDF(){
     if(typeof window === "undefined") return null;
-    if(typeof window.html2canvas === "function") return window.html2canvas;
+    if(window.jspdf?.jsPDF) return window.jspdf.jsPDF;
 
-    let loader = document.querySelector('script[data-html2canvas-loader="true"]');
-    if(!loader){
-      loader = document.createElement("script");
-      loader.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      loader.async = true;
-      loader.crossOrigin = "anonymous";
-      loader.referrerPolicy = "no-referrer";
-      loader.dataset.html2canvasLoader = "true";
-      const integrity = "sha512-BNa5u86XC0ZAY7WjVB7FtBVVn7a4MyuMxDN/68LUEDlTF/WZ0zR1ekR4WagM9YIvEBSGIWXhe/9QgW8qCV3R8A==";
-      loader.integrity = integrity;
-      document.head.appendChild(loader);
-    }
-
-    await new Promise((resolve, reject)=>{
-      if(loader.dataset.loaded){
-        resolve();
-        return;
+    const sources = [
+      {
+        src: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+        integrity: "sha512-3H5Y0YX/4p+NuYOSzl1Prr6A91BNIZ1g9C7tuWOS7awsrX3+B4lLNHmmwxSlVlCAJbbnCii1kXtUHOPeja8sBw=="
+      },
+      {
+        src: "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+        integrity: "sha512-3H5Y0YX/4p+NuYOSzl1Prr6A91BNIZ1g9C7tuWOS7awsrX3+B4lLNHmmwxSlVlCAJbbnCii1kXtUHOPeja8sBw=="
       }
-      const handleLoad = ()=>{
-        loader.removeEventListener("load", handleLoad);
-        loader.removeEventListener("error", handleError);
-        loader.dataset.loaded = "true";
-        resolve();
-      };
-      const handleError = ()=>{
-        loader.removeEventListener("load", handleLoad);
-        loader.removeEventListener("error", handleError);
-        reject(new Error("HTML2CANVAS_LOAD_ERROR"));
-      };
-      loader.addEventListener("load", handleLoad);
-      loader.addEventListener("error", handleError);
-    }).catch(()=>{});
+    ];
 
-    return typeof window.html2canvas === "function" ? window.html2canvas : null;
+    for(const source of sources){
+      if(window.jspdf?.jsPDF) break;
+
+      let loader = document.querySelector(`script[data-jspdf-src="${source.src}"]`);
+
+      if(loader?.dataset.failed === "true"){
+        continue;
+      }
+
+      if(!loader){
+        loader = document.createElement("script");
+        loader.src = source.src;
+        loader.async = true;
+        loader.crossOrigin = "anonymous";
+        loader.referrerPolicy = "no-referrer";
+        loader.integrity = source.integrity;
+        loader.dataset.jspdfSrc = source.src;
+        document.head.appendChild(loader);
+      }else if(loader.dataset.loaded === "true" && window.jspdf?.jsPDF){
+        return window.jspdf.jsPDF;
+      }
+
+      const loaded = await new Promise(resolve=>{
+        if(loader.dataset.loaded === "true"){
+          resolve(true);
+          return;
+        }
+
+        const handleLoad = ()=>{
+          cleanup();
+          loader.dataset.loaded = "true";
+          resolve(true);
+        };
+
+        const handleError = ()=>{
+          cleanup();
+          loader.dataset.failed = "true";
+          resolve(false);
+        };
+
+        const cleanup = ()=>{
+          loader.removeEventListener("load", handleLoad);
+          loader.removeEventListener("error", handleError);
+        };
+
+        loader.addEventListener("load", handleLoad, { once:true });
+        loader.addEventListener("error", handleError, { once:true });
+      });
+
+      if(loaded && window.jspdf?.jsPDF){
+        return window.jspdf.jsPDF;
+      }
+    }
+
+    return window.jspdf?.jsPDF || null;
   }
 
-  function canvasToBlob(canvas){
-    if(typeof canvas.toBlob === "function"){
-      return new Promise(resolve=>canvas.toBlob(resolve, "image/png", 0.95));
-    }
-    const dataUrl = canvas.toDataURL("image/png", 0.95);
-    const byteString = atob(dataUrl.split(",")[1] || "");
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    for(let i = 0; i < byteString.length; i++){
-      uint8Array[i] = byteString.charCodeAt(i);
-    }
-    return Promise.resolve(new Blob([uint8Array], { type: "image/png" }));
+  function blobToDataUrl(blob){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>resolve(reader.result);
+      reader.onerror = ()=>reject(new Error("DATA_URL_READ_ERROR"));
+      reader.readAsDataURL(blob);
+    });
   }
 
-  async function shareCategoryRecordsAsImage(){
+  function buildPdfFromTable(tableElement, categoryName, jsPDFCtor){
+    const tableData = extractCategoryTableData(tableElement);
+
+    const pdfFromJsPDF = ()=>{
+      if(!jsPDFCtor) return null;
+      try{
+        const doc = new jsPDFCtor({ orientation: "l", unit: "pt", format: "a4" });
+        if(typeof doc.setR2L === "function") doc.setR2L(true);
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 32;
+        const paddingX = 10;
+        const rowHeight = 26;
+        const headerHeight = 28;
+        const titleFont = 16;
+        const baseFont = 11;
+        const headerFont = 12;
+        const availableWidth = pageWidth - margin * 2;
+
+        const measuredWidths = tableData.columnWidths || [];
+        const colWidths = tableData.headers.map((h, idx)=> Math.max(90, measuredWidths[idx] || doc.getTextWidth(String(h)) + paddingX * 2));
+
+        tableData.rows.forEach(row=>{
+          row.forEach((cell, i)=>{
+            const textWidth = doc.getTextWidth(String(cell || "")) + paddingX * 2;
+            colWidths[i] = Math.max(colWidths[i] || 90, textWidth, measuredWidths[i] || 0);
+          });
+        });
+
+        const totalWidth = colWidths.reduce((sum, w)=> sum + w, 0);
+        const scale = totalWidth > availableWidth ? availableWidth / totalWidth : 1;
+        const scaledWidths = colWidths.map(w=> w * scale);
+
+        let cursorY = margin;
+        const renderTitleBlock = ()=>{
+          const title = categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة";
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(titleFont);
+          doc.text(title, pageWidth - margin, cursorY + titleFont, { align: "right" });
+          cursorY += titleFont + 6;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(baseFont);
+          const exportedAt = new Date().toLocaleString("ar-EG");
+          doc.text(`تم التصدير في ${exportedAt}`, pageWidth - margin, cursorY + baseFont, { align: "right" });
+          cursorY += baseFont + 10;
+        };
+
+        const drawHeaderRow = ()=>{
+          doc.setFillColor(90, 159, 242);
+          doc.setDrawColor(46, 114, 216);
+          doc.rect(margin, cursorY, availableWidth, headerHeight, "FD");
+
+          let cellRight = pageWidth - margin;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(headerFont);
+          tableData.headers.forEach((text, idx)=>{
+            const width = scaledWidths[idx] || 90;
+            const startX = cellRight - width;
+            doc.setTextColor(255, 255, 255);
+            doc.line(startX, cursorY, startX, cursorY + headerHeight);
+            doc.text(text || "", startX + width - paddingX, cursorY + headerHeight / 2 + 4, { align: "right", baseline: "middle" });
+            cellRight -= width;
+          });
+
+          doc.setTextColor(34, 34, 34);
+          doc.line(margin + availableWidth, cursorY, margin + availableWidth, cursorY + headerHeight);
+          cursorY += headerHeight;
+        };
+
+        const resetPage = (includeTitle)=>{
+          if(includeTitle){
+            renderTitleBlock();
+          }
+          drawHeaderRow();
+        };
+
+        renderTitleBlock();
+        drawHeaderRow();
+
+        doc.setFontSize(baseFont);
+        tableData.rows.forEach((row, rowIndex)=>{
+          if(cursorY + rowHeight > pageHeight - margin){
+            doc.addPage();
+            if(typeof doc.setR2L === "function") doc.setR2L(true);
+            cursorY = margin;
+            resetPage(true);
+          }
+
+          const isFooter = rowIndex >= tableData.footerStartIndex;
+          const isStriped = rowIndex % 2 !== 0;
+          if(isFooter){
+            doc.setFillColor(245, 233, 229);
+          }else if(isStriped){
+            doc.setFillColor(244, 247, 255);
+          }else{
+            doc.setFillColor(255, 255, 255);
+          }
+          doc.setDrawColor(229, 233, 245);
+          doc.rect(margin, cursorY, availableWidth, rowHeight, "FD");
+
+          let cellRight = pageWidth - margin;
+          row.forEach((cellText, cellIndex)=>{
+            const width = scaledWidths[cellIndex] || 90;
+            const startX = cellRight - width;
+            doc.setFont("helvetica", isFooter ? "bold" : "normal");
+            doc.text(cellText || "", startX + width - paddingX, cursorY + rowHeight / 2 + 4, { align: "right", baseline: "middle" });
+            doc.line(startX, cursorY, startX, cursorY + rowHeight);
+            cellRight -= width;
+          });
+
+          doc.line(margin + availableWidth, cursorY, margin + availableWidth, cursorY + rowHeight);
+          cursorY += rowHeight;
+        });
+
+        const arrayBuffer = doc.output("arraybuffer");
+        return new Blob([arrayBuffer], { type: "application/pdf" });
+      }catch(jsPdfError){
+        console.warn("jsPDF table export failed, using fallback", jsPdfError);
+        return null;
+      }
+    };
+
+    const buildFallbackPdf = ()=>{
+      const encoder = new TextEncoder();
+      const escapeText = text=> (text || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+      const chunks = [];
+      let position = 0;
+      const push = bytes=>{ chunks.push(bytes); position += bytes.length; };
+      const pushText = txt=> push(encoder.encode(txt));
+
+      const paddingX = 10;
+      const headerHeight = 26;
+      const rowHeight = 22;
+      const margin = 36;
+      const baseFont = 11;
+      const headerFont = 12;
+      const titleFont = 16;
+      const approxWidth = txt=> Math.max(90, (txt?.length || 1) * 6.2 + paddingX * 2);
+
+      const measured = tableData.columnWidths || [];
+      const colWidths = tableData.headers.map((h, idx)=> Math.max(90, measured[idx] || approxWidth(h)));
+      tableData.rows.forEach(row=>{
+        row.forEach((cell, i)=>{
+          colWidths[i] = Math.max(colWidths[i] || 90, measured[i] || approxWidth(cell));
+        });
+      });
+
+      const contentWidth = colWidths.reduce((sum, w)=> sum + w, 0);
+      const pageWidth = Math.max(842, contentWidth + margin * 2);
+      const tableHeight = headerHeight + tableData.rows.length * rowHeight;
+      const pageHeight = margin * 2 + titleFont + baseFont + 20 + tableHeight;
+      const tableStartX = pageWidth - margin - contentWidth;
+      const toPdfY = yFromTop=> pageHeight - yFromTop;
+
+      const buildContentStream = ()=>{
+        let cursorY = margin;
+        const parts = ["q\n0 0 0 rg\n0 0 0 RG\n"];
+
+        const textLine = (text, x, y, size)=>{
+          parts.push(`BT /F1 ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escapeText(text)}) Tj ET\n`);
+        };
+
+        const drawRect = (x, y, w, h, fill)=>{
+          parts.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re\n${fill ? "f" : "S"}\n`);
+        };
+
+        textLine(categoryName ? `سجلات فئة ${categoryName}` : "سجلات الفئة", pageWidth - margin, toPdfY(cursorY + titleFont), titleFont);
+        cursorY += titleFont + 6;
+        textLine("تم تصدير هذا الجدول من التطبيق", pageWidth - margin, toPdfY(cursorY + baseFont), baseFont);
+        cursorY += baseFont + 10;
+
+        const headerY = cursorY;
+        parts.push("0.945 0.957 0.984 rg\n0.863 0.89 0.957 RG\n");
+        drawRect(tableStartX, toPdfY(headerY + headerHeight), contentWidth, headerHeight, true);
+
+        let cursorX = pageWidth - margin;
+        tableData.headers.forEach((cell, idx)=>{
+          const width = colWidths[idx] || 90;
+          const startX = cursorX - width;
+          parts.push(`${startX.toFixed(2)} ${toPdfY(headerY).toFixed(2)} m ${startX.toFixed(2)} ${toPdfY(headerY + headerHeight).toFixed(2)} l S\n`);
+          textLine(cell || "", startX + width - paddingX, toPdfY(headerY + headerHeight / 2 - 3), headerFont);
+          cursorX -= width;
+        });
+        parts.push(`${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(headerY).toFixed(2)} m ${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(headerY + headerHeight).toFixed(2)} l S\n`);
+        cursorY += headerHeight;
+
+        tableData.rows.forEach((row, rowIndex)=>{
+          const isFooter = rowIndex >= tableData.footerStartIndex;
+          const rowTop = cursorY;
+          if(isFooter){
+            parts.push("0.992 0.957 0.945 rg\n");
+          }else if(rowIndex % 2 !== 0){
+            parts.push("0.976 0.984 1 rg\n");
+          }else{
+            parts.push("1 1 1 rg\n");
+          }
+          parts.push("0.898 0.914 0.957 RG\n");
+          drawRect(tableStartX, toPdfY(rowTop + rowHeight), contentWidth, rowHeight, true);
+
+          let colRight = pageWidth - margin;
+          row.forEach((cellText, cellIndex)=>{
+            const width = colWidths[cellIndex] || 90;
+            const startX = colRight - width;
+            parts.push(`${startX.toFixed(2)} ${toPdfY(rowTop).toFixed(2)} m ${startX.toFixed(2)} ${toPdfY(rowTop + rowHeight).toFixed(2)} l S\n`);
+            textLine(cellText || "", startX + width - paddingX, toPdfY(rowTop + rowHeight / 2 - 3), isFooter ? headerFont : baseFont);
+            colRight -= width;
+          });
+          parts.push(`${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(rowTop).toFixed(2)} m ${(tableStartX + contentWidth).toFixed(2)} ${toPdfY(rowTop + rowHeight).toFixed(2)} l S\n`);
+          cursorY += rowHeight;
+        });
+
+        parts.push("Q\n");
+        return parts.join("");
+      };
+
+      const contentString = buildContentStream();
+      const contentBytes = encoder.encode(contentString);
+
+      pushText("%PDF-1.4\n");
+      const offsets = [];
+      const track = cb=>{ offsets.push(position); cb(); };
+
+      track(()=> pushText("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
+      track(()=> pushText("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
+      track(()=> pushText(`3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 6 0 R >> >> /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Contents 5 0 R >>\nendobj\n`));
+      track(()=> pushText("4 0 obj\n<< /Producer (fallback-export) >>\nendobj\n"));
+      track(()=>{
+        pushText(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+        push(contentBytes);
+        pushText("\nendstream\nendobj\n");
+      });
+      track(()=> pushText("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"));
+
+      const xrefStart = position;
+      const pad = num=> String(num).padStart(10, "0");
+      let xref = `xref\n0 7\n0000000000 65535 f \n`;
+      for(const offset of offsets){
+        xref += `${pad(offset)} 00000 n \n`;
+      }
+      xref += `trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+      pushText(xref);
+
+      return new Blob(chunks, { type: "application/pdf" });
+    };
+
+    return pdfFromJsPDF() || buildFallbackPdf();
+  }
+
+  async function shareCategoryRecordsAsPdf(){
     if(!categoryModal?.classList.contains("active")) return;
     if(!shareCategoryModalBtn) return;
 
+    renderCategoryModal(activeCategoryName);
     const tableElement = categoryModal.querySelector(".records-table");
     if(!tableElement){
       alert("لا توجد سجلات لمشاركتها حالياً.");
       return;
     }
 
-    const html2canvasLib = await ensureHtml2Canvas();
-    if(typeof html2canvasLib !== "function"){
-      alert("خدمة إنشاء الصورة غير متوفرة في الوقت الحالي.");
-      return;
-    }
-
     const originalHtml = shareCategoryModalBtn.dataset.originalHtml || shareCategoryModalBtn.innerHTML;
     shareCategoryModalBtn.disabled = true;
     shareCategoryModalBtn.setAttribute("aria-disabled", "true");
-    shareCategoryModalBtn.textContent = "جاري التحضير...";
+    shareCategoryModalBtn.textContent = "جاري تجهيز ملف PDF...";
 
     try{
-      const desiredWidth = Math.max(tableElement.scrollWidth, 1024);
-      const canvas = await html2canvasLib(tableElement, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        width: desiredWidth,
-        windowWidth: desiredWidth,
-        useCORS: true
-      });
+      const jsPDFCtor = await ensureJsPDF().catch(()=>null);
+      const pdfBlob = buildPdfFromTable(tableElement, activeCategoryName, jsPDFCtor);
+      if(!pdfBlob) throw new Error("NO_PDF_BLOB");
 
-      const blob = await canvasToBlob(canvas);
-      if(!blob) throw new Error("NO_BLOB");
-
+      const today = new Date();
+      const datePart = today.toLocaleDateString("en-CA");
       const safeName = (activeCategoryName || "category").replace(/\s+/g, "-");
-      const fileName = `records-${safeName}.png`;
-      const file = typeof File === "function" ? new File([blob], fileName, { type: "image/png" }) : null;
+      const fileName = `records-${safeName}-${datePart}.pdf`;
+      const file = typeof File === "function" ? new File([pdfBlob], fileName, { type: "application/pdf" }) : null;
 
-      if(file && navigator.canShare && navigator.canShare({ files: [file] })){
+      const shareTitle = `سجلات ${activeCategoryName || ""}`.trim();
+      const shareText = `ملف PDF يحتوي على جدول سجلات ${activeCategoryName || ""} لمشاركته في أي تطبيق.`.trim();
+      const canShareFiles = file && navigator.canShare?.({ files: [file] });
+      const dataUrl = await blobToDataUrl(pdfBlob).catch(()=>null);
+
+      if(canShareFiles){
         await navigator.share({
           files: [file],
-          title: `سجلات ${activeCategoryName || ""}`.trim(),
-          text: `صورة من جدول سجلات ${activeCategoryName || ""} لمشاركتها عبر واتس اب.`.trim()
+          title: shareTitle,
+          text: shareText
+        });
+      }else if(navigator.share && dataUrl){
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: dataUrl
         });
       }else{
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(pdfBlob);
         const link = document.createElement("a");
         link.href = url;
         link.download = fileName;
@@ -687,11 +996,11 @@
         link.click();
         link.remove();
         setTimeout(()=>URL.revokeObjectURL(url), 4000);
-        alert("تم تنزيل الصورة. شاركها عبر واتس اب من معرض الصور لديك.");
+        alert("تم تنزيل ملف PDF. يمكنك مشاركته من أي تطبيق عبر الملفات.");
       }
     }catch(error){
-      console.error("shareCategoryRecordsAsImage", error);
-      alert("تعذر تجهيز صورة السجلات، الرجاء المحاولة مرة أخرى.");
+      console.error("shareCategoryRecordsAsPdf", error);
+      alert("تعذر تجهيز ملف PDF للسجلات، الرجاء المحاولة مرة أخرى.");
     }finally{
       shareCategoryModalBtn.disabled = false;
       shareCategoryModalBtn.setAttribute("aria-disabled", "false");
@@ -733,7 +1042,7 @@
     }
   });
   closeCategoryModalBtn?.addEventListener("click", closeCategoryModal);
-  shareCategoryModalBtn?.addEventListener("click", shareCategoryRecordsAsImage);
+  shareCategoryModalBtn?.addEventListener("click", shareCategoryRecordsAsPdf);
   categoryModal?.addEventListener("click", evt=>{
     if(evt.target === categoryModal){
       closeCategoryModal();
@@ -1203,8 +1512,10 @@
 
   <div id="categoryModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="categoryModalTitle" aria-describedby="categoryModalSubtitle">
     <div class="modal-panel" role="document" tabindex="-1">
-      <button type="button" class="modal-share" id="shareCategoryModal" aria-label="مشاركة جدول السجلات كصورة"><span class="share-icon">⇪</span><span>مشاركة كصورة</span></button>
-      <button type="button" class="modal-close" id="closeCategoryModal" aria-label="إغلاق">&times;</button>
+      <div class="modal-actions">
+        <button type="button" class="modal-share" id="shareCategoryModal" aria-label="مشاركة جدول السجلات كملف PDF"><span class="share-icon" aria-hidden="true">⇪</span><span class="sr-only">مشاركة كملف PDF</span></button>
+        <button type="button" class="modal-close" id="closeCategoryModal" aria-label="إغلاق">&times;</button>
+      </div>
       <h2 class="modal-title" id="categoryModalTitle">سجلات الفئة</h2>
       <p class="modal-subtitle" id="categoryModalSubtitle">عرض مفصل لسجلات الفئة المختارة.</p>
       <div class="modal-table-wrapper">
