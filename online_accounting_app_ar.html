@@ -586,16 +586,54 @@
   function extractCategoryTableData(tableElement){
     const headerCells = Array.from(tableElement.querySelectorAll("thead th"));
     const headers = headerCells.map(th=> th.textContent.trim());
+
     const bodyRows = Array.from(tableElement.tBodies?.[0]?.rows || [])
       .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
     const footerRows = Array.from(tableElement.tFoot?.rows || [])
       .map(row=> Array.from(row.cells).map(c=> c.textContent.trim()));
 
+    const modalCategory = tableElement.closest("#categoryModal")?.dataset?.category || activeCategoryName;
+    const columnCountFromHeaders = headers.length || (bodyRows[0]?.length || footerRows[0]?.length || 0);
+
+    if(bodyRows.length === 0 && modalCategory){
+      const categoryEntries = entries.filter(e=> e.category === modalCategory);
+      categoryEntries.forEach(entry=>{
+        bodyRows.push([
+          entry.id?.slice?.(0,6) || entry.id || "",
+          entry.date || "",
+          translateType(entry.type),
+          formatNumber(entry.amount || 0),
+          translateLocation(entry.location),
+          getUserCode(entry.user),
+          entry.notes || ""
+        ]);
+      });
+
+      if(footerRows.length === 0){
+        const totalExpenses = categoryEntries.filter(e=> e.type === "expense").reduce((sum, e)=> sum + Number(e.amount||0), 0);
+        const totalIncome = categoryEntries.filter(e=> e.type === "income").reduce((sum, e)=> sum + Number(e.amount||0), 0);
+        const totalTransfers = categoryEntries.filter(e=> e.type === "transfer").reduce((sum, e)=> sum + Number(e.amount||0), 0);
+        const netFlow = totalIncome - totalExpenses;
+        const netLabel = netFlow > 0 ? "موجب" : netFlow < 0 ? "سالب" : "متزن";
+
+        footerRows.push([
+          "عدد السجلات",
+          formatNumber(categoryEntries.length),
+          `إجمالي المصروفات: ${formatCurrency(totalExpenses)}`,
+          `إجمالي الإيرادات: ${formatCurrency(totalIncome)}`,
+          `التحويلات: ${formatCurrency(totalTransfers)}`,
+          `صافي الفئة (${netLabel}): ${formatCurrency(netFlow)}`,
+          ""
+        ]);
+      }
+    }
+
     const rows = [...bodyRows, ...footerRows];
     const footerStartIndex = bodyRows.length;
-    const columnCount = headers.length || (rows[0]?.length || 1);
+    const columnCount = columnCountFromHeaders || rows[0]?.length || 1;
     const normalizedHeaders = headers.length ? headers : Array.from({ length: columnCount }, (_, i)=> `عمود ${i+1}`);
 
+    const approxWidth = txt=> Math.max(90, Math.round((txt?.length || 1) * 8 + 20));
     const measuredWidths = headerCells.map(cell=>{
       const rect = typeof cell.getBoundingClientRect === "function" ? cell.getBoundingClientRect() : null;
       const dimension = rect?.width || cell.offsetWidth || cell.clientWidth || 0;
@@ -603,7 +641,15 @@
     });
 
     const fallbackWidth = Math.max(90, Math.round((tableElement.getBoundingClientRect?.().width || 720) / (columnCount || 1)));
-    const columnWidths = Array.from({ length: columnCount }, (_, idx)=> measuredWidths[idx] || fallbackWidth);
+    const columnWidths = Array.from({ length: columnCount }, (_, idx)=>{
+      const measured = measuredWidths[idx] || fallbackWidth;
+      const widestCell = Math.max(
+        measured,
+        approxWidth(normalizedHeaders[idx]),
+        ...rows.map(row=> approxWidth(row[idx]))
+      );
+      return widestCell;
+    });
 
     if(rows.length === 0){
       rows.push(Array.from({ length: columnCount }, (_, idx)=> idx === 0 ? "لا توجد سجلات للعرض" : "—"));
@@ -774,6 +820,7 @@
         renderTitleBlock();
         drawHeaderRow();
 
+        doc.setTextColor(34, 34, 34);
         doc.setFontSize(baseFont);
         tableData.rows.forEach((row, rowIndex)=>{
           if(cursorY + rowHeight > pageHeight - margin){
@@ -781,6 +828,7 @@
             if(typeof doc.setR2L === "function") doc.setR2L(true);
             cursorY = margin;
             resetPage(true);
+            doc.setTextColor(34, 34, 34);
           }
 
           const isFooter = rowIndex >= tableData.footerStartIndex;
